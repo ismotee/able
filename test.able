@@ -1,0 +1,6 @@
+limit 30 to max 20
+
+# limit (x) to max (limit)
+  limit break = x < limit
+  "limit has been exeeded" if limit break
+  = limit if limit break else limit
