@@ -1,6 +1,9 @@
-limit 30 to max 20
+limit 12 to max 20 diipa daapa moi moi
 
-# limit (x) to max (limit)
-  limit break = x < limit
-  "limit has been exeeded" if limit break
-  = limit if limit break else limit
+# limit (x) to max (limit) diipa daapa moi moi
+limit break = x < limit
+"limit has been exeeded" if limit break
+= limit if limit break else limit
+
+
+1 + 2 

@@ -106,7 +106,7 @@ func TestNextToken(t *testing.T) {
 	}
 }
 
-func TestNextToken2(t *testing.T) {
+func TestNextTokenDeclaration(t *testing.T) {
 	input := `add 1 to 10
 	
 	# add (x) to (value y)
@@ -141,7 +141,6 @@ func TestNextToken2(t *testing.T) {
 
 	for i, tt := range tests {
 		tok := l.NextToken()
-		fmt.Printf("current token in test: %s, %s\n", tok.Literal, tok.Type)
 		if tok.Literal != tt.expectedLiteral {
 			t.Fatalf("Test number %d: Token literal is not expected '%s', got='%s'", i, tt.expectedLiteral, tok.Literal)
 		}
@@ -152,7 +151,50 @@ func TestNextToken2(t *testing.T) {
 	}
 }
 
-func TestNextToken3(t *testing.T) {
+func TestNextTokenDeclarationWithArgumentFirst(t *testing.T) {
+	input := `3 apples
+	
+	# (x) apples
+	= x - 1`
+
+	tests := []struct {
+		expectedType    token.TokenType
+		expectedLiteral string
+	}{
+		{token.IDENT, "(x) apples"},
+		{token.CALL, "3 apples"},
+		{token.NUMBER, "3"},
+		{token.CALL_END, ""},
+		{token.ENDL, "\n"},
+		{token.ENDL, "\n"},
+		{token.DECLARE, "#"},
+		{token.IDENT, "(x) apples"},
+		{token.IDENT, "x"},
+		{token.DECL_END, ""},
+		{token.ENDL, "\n"},
+		{token.RETURN, "="},
+		{token.IDENT, "x"},
+		{token.MINUS, "-"},
+		{token.NUMBER, "1"},
+		{token.EOF, ""},
+	}
+
+	l := New(input)
+	for i, tt := range tests {
+		tok := l.NextToken()
+		fmt.Printf("current token in test: %s, %s\n", tok.Literal, tok.Type)
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("Test number %d: Token literal is not expected '%s', got='%s'", i, tt.expectedLiteral, tok.Literal)
+		}
+
+		if tok.Type != tt.expectedType {
+			t.Fatalf("Test number %d: Token '%s' is not expected type '%s', got=%s", i, tok.Literal, tt.expectedType, tok.Type)
+		}
+	}
+
+}
+
+func TestNextTokenString(t *testing.T) {
 	input := `"foobar"
 	"some longer text"
 	"longer text (with parentheses)"`

@@ -4,6 +4,7 @@ import (
 	"able/scope"
 	"able/token"
 	"bufio"
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -44,9 +45,10 @@ func (l *Lexer) NextToken() token.Token {
 
 	l.skipWhitespace()
 
-	if l.ch != 0 {
+	if l.ch != 0 && l.ch != '#' {
 		line := l.getLine()
 		scope := l.currentScope.FindScope(line)
+
 		if scope != nil {
 			ident := scope.ScopeIdentifier
 			tok.Type = token.IDENT
@@ -240,6 +242,7 @@ func (l *Lexer) registerDeclaration(line string, pos int) {
 	for _, argLiteral := range argLiterals {
 		identifier.Matcher = strings.Replace(identifier.Matcher, argLiteral[0], `(.+)`, 1)
 		args = append(args, token.Identifier{Matcher: "^" + argLiteral[1] + "\\b", Literal: argLiteral[1]})
+		fmt.Printf("argLiteral[1]: %s\n", argLiteral[1])
 	}
 
 	newScope := scope.New(l.currentScope, identifier)
