@@ -34,7 +34,7 @@ func main() {
 	var source bytes.Buffer
 	source.Write(b)
 
-	l := lexer.New(source.String())
+	l := lexer.New(source.String(), nil, nil)
 	p := parser.New(l)
 	program := p.ParseProgram()
 	env := object.NewEnvironment()

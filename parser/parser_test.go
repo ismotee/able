@@ -32,7 +32,7 @@ func TestDeclaration(t *testing.T) {
 		},
 	}
 
-	l := lexer.New(input)
+	l := lexer.New(input, nil, nil)
 	p := New(l)
 
 	program := p.ParseProgram()
@@ -58,7 +58,7 @@ func TestReturnStatement(t *testing.T) {
 		{12.2},
 	}
 
-	l := lexer.New(input)
+	l := lexer.New(input, nil, nil)
 	p := New(l)
 
 	program := p.ParseProgram()
@@ -83,7 +83,7 @@ func TestIdentifierExpression(t *testing.T) {
 		{"foobar"},
 	}
 
-	l := lexer.New(input)
+	l := lexer.New(input, nil, nil)
 	p := New(l)
 
 	program := p.ParseProgram()
@@ -114,7 +114,7 @@ func TestNumberExpression(t *testing.T) {
 		{5.0, "5"},
 	}
 
-	l := lexer.New(input)
+	l := lexer.New(input, nil, nil)
 	p := New(l)
 
 	program := p.ParseProgram()
@@ -146,7 +146,7 @@ func TestStringLiteralExpression(t *testing.T) {
 		{"foobar", "foobar"},
 	}
 
-	l := lexer.New(input)
+	l := lexer.New(input, nil, nil)
 	p := New(l)
 
 	program := p.ParseProgram()
@@ -174,7 +174,7 @@ func TestParsingPrefixExpression(t *testing.T) {
 	}
 
 	for _, tt := range prefixTests {
-		l := lexer.New(tt.input)
+		l := lexer.New(tt.input, nil, nil)
 		p := New(l)
 		program := p.ParseProgram()
 
@@ -214,7 +214,7 @@ func TestInfixExpressions(t *testing.T) {
 	}
 
 	for _, tt := range infixTests {
-		l := lexer.New(tt.input)
+		l := lexer.New(tt.input, nil, nil)
 		p := New(l)
 		program := p.ParseProgram()
 		testProgram(t, program, 1)
@@ -293,7 +293,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		l := lexer.New(tt.input)
+		l := lexer.New(tt.input, nil, nil)
 		p := New(l)
 		program := p.ParseProgram()
 		testProgram(t, program, 1)
@@ -308,7 +308,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 func TestIfExpressions(t *testing.T) {
 	input := `3 if 1 < 2`
 
-	l := lexer.New(input)
+	l := lexer.New(input, nil, nil)
 	p := New(l)
 	program := p.ParseProgram()
 	testProgram(t, program, 1)
@@ -335,7 +335,7 @@ func TestIfExpressions(t *testing.T) {
 func TestIfElseExpressions(t *testing.T) {
 	input := `3 if 2 < 1 else 5`
 
-	l := lexer.New(input)
+	l := lexer.New(input, nil, nil)
 	p := New(l)
 	program := p.ParseProgram()
 	testProgram(t, program, 1)
@@ -369,7 +369,7 @@ func TestCallExpressionParsing(t *testing.T) {
 	# add (x) to (value y)
 	x + value y`
 
-	l := lexer.New(input)
+	l := lexer.New(input, nil, nil)
 	p := New(l)
 	program := p.ParseProgram()
 
@@ -405,7 +405,7 @@ func TestCallExpressionParsing(t *testing.T) {
 func TestAssignExpressions(t *testing.T) {
 	input := `test = false`
 
-	l := lexer.New(input)
+	l := lexer.New(input, nil, nil)
 	p := New(l)
 	program := p.ParseProgram()
 	testProgram(t, program, 1)

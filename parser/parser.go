@@ -107,6 +107,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 		}
 		p.nextToken()
 	}
+
 	return program
 }
 
@@ -276,9 +277,7 @@ func (p *Parser) parseAssignExpression(left ast.Expression) ast.Expression {
 
 func (p *Parser) parseIfExpression(left ast.Expression) ast.Expression {
 	expression := &ast.IfExpression{Token: p.curToken, Consequence: left}
-
 	p.nextToken()
-
 	expression.Condition = p.parseExpression(LOWEST)
 
 	if p.expectPeek(token.ELSE) {
@@ -307,7 +306,6 @@ func (p *Parser) parseCallArguments() []ast.Expression {
 			p.nextToken()
 		}
 	}
-	p.nextToken()
 	return args
 }
 

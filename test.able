@@ -1,9 +1,4 @@
-limit 12 to max 20 diipa daapa moi moi
+4 apples
 
-# limit (x) to max (limit) diipa daapa moi moi
-limit break = x < limit
-"limit has been exeeded" if limit break
-= limit if limit break else limit
-
-
-1 + 2 
+# (nbr x) apples 
+ = nbr x + 1

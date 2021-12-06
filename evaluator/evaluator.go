@@ -195,6 +195,7 @@ func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Obje
 func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
 	val, ok := env.Get(node.Value)
 	if !ok {
+		fmt.Printf("identifier '%s' not found\n", node.Value)
 		// error identifier not found
 		return nil
 	}

@@ -83,15 +83,14 @@ func TestNextToken(t *testing.T) {
 		{token.IDENT, "add (x) to (value y)"},
 		{token.CALL, "add 1 to 10"},
 		{token.NUMBER, "1"},
-		{token.ARG_END, ","},
+		{token.ARG_END, ""},
 		{token.NUMBER, "10"},
-		{token.CALL_END, ";"},
-		{token.ENDL, "\n"},
+		{token.CALL_END, ""},
 		{token.NUMBER, "1"},
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, nil, nil)
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -123,7 +122,6 @@ func TestNextTokenDeclaration(t *testing.T) {
 		{token.NUMBER, "10"},
 		{token.CALL_END, ""},
 		{token.ENDL, "\n"},
-		{token.ENDL, "\n"},
 		{token.DECLARE, "#"},
 		{token.IDENT, "add (x) to (value y)"},
 		{token.IDENT, "x"},
@@ -137,7 +135,7 @@ func TestNextTokenDeclaration(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, nil, nil)
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -166,7 +164,6 @@ func TestNextTokenDeclarationWithArgumentFirst(t *testing.T) {
 		{token.NUMBER, "3"},
 		{token.CALL_END, ""},
 		{token.ENDL, "\n"},
-		{token.ENDL, "\n"},
 		{token.DECLARE, "#"},
 		{token.IDENT, "(x) apples"},
 		{token.IDENT, "x"},
@@ -179,7 +176,7 @@ func TestNextTokenDeclarationWithArgumentFirst(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, nil, nil)
 	for i, tt := range tests {
 		tok := l.NextToken()
 		fmt.Printf("current token in test: %s, %s\n", tok.Literal, tok.Type)
@@ -211,7 +208,7 @@ func TestNextTokenString(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, nil, nil)
 
 	for i, tt := range tests {
 		tok := l.NextToken()

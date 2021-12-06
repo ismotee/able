@@ -55,7 +55,8 @@ func (d *Declaration) String() string {
 	var out bytes.Buffer
 
 	out.WriteString(d.TokenLiteral() + " ")
-	out.WriteString(d.Name.String())
+	out.WriteString(d.Name.String() + "\n")
+	out.WriteString(d.Body.String())
 
 	return out.String()
 }
@@ -254,7 +255,7 @@ func (ce *CallExpression) String() string {
 
 	out.WriteString(ce.Function.String() + " ")
 	out.WriteString("Args:" + strings.Join(args, ", "))
-	out.WriteString(";")
+	out.WriteString("\n")
 
 	return out.String()
 }

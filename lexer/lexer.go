@@ -4,7 +4,6 @@ import (
 	"able/scope"
 	"able/token"
 	"bufio"
-	"fmt"
 	"regexp"
 	"strings"
 )
@@ -21,13 +20,18 @@ type Lexer struct {
 	currentScope *scope.Scope
 }
 
-func New(input string) *Lexer {
-	l := &Lexer{input: input}
+func New(input string, global, current *scope.Scope) *Lexer {
+	if global == nil {
+		global = scope.New(nil, token.Identifier{Literal: "GLOBAL", Matcher: `^GLOBAL\b`})
+	}
+	if current == nil {
+		current = global
+	}
 
-	l.GlobalScope = scope.New(nil, token.Identifier{Literal: "GLOBAL", Matcher: `^GLOBAL\b`})
-	l.currentScope = l.GlobalScope
+	l := &Lexer{input: input, GlobalScope: global, currentScope: current}
+
 	l.RegisterDeclarations()
-	l.currentScope = l.GlobalScope // rewind to first scope
+	l.currentScope = current // rewind to first scope
 
 	l.readChar()
 	return l
@@ -45,8 +49,8 @@ func (l *Lexer) NextToken() token.Token {
 
 	l.skipWhitespace()
 
-	if l.ch != 0 && l.ch != '#' {
-		line := l.getLine()
+	if l.ch != 0 && l.ch != '#' && l.ch != '=' {
+		line := strings.TrimSpace(l.getLine())
 		scope := l.currentScope.FindScope(line)
 
 		if scope != nil {
@@ -56,7 +60,7 @@ func (l *Lexer) NextToken() token.Token {
 
 			if l.lastToken.Type == token.DECLARE {
 				l.currentScope = scope
-				l.appendDeclParameters(line, regexp.MustCompile(ident.Matcher))
+				l.appendDeclParameters(line+"\n", regexp.MustCompile(ident.Matcher))
 			}
 			l.lastToken = &tok
 
@@ -65,13 +69,13 @@ func (l *Lexer) NextToken() token.Token {
 			l.readChar()
 
 			return tok
-		} else if ident := l.currentScope.FindIdentifier(line); ident != nil {
+		} else if ident := l.currentScope.FindIdentifier(line + "\n"); ident != nil {
 			tok.Type = token.IDENT
 			tok.Literal = ident.Literal
 
 			matcher := regexp.MustCompile(ident.Matcher)
-			literal := matcher.FindString(line)
-			l.appendCallArgs(line, matcher)
+			literal := matcher.FindString(line + "\n")
+			l.appendCallArgs(line+"\n", matcher)
 
 			l.lastToken = &tok
 
@@ -172,6 +176,7 @@ func (l *Lexer) NextToken() token.Token {
 						return token.Token{Type: token.ILLEGAL, Literal: word}
 					}
 				}
+
 				return tok
 			}
 
@@ -242,7 +247,6 @@ func (l *Lexer) registerDeclaration(line string, pos int) {
 	for _, argLiteral := range argLiterals {
 		identifier.Matcher = strings.Replace(identifier.Matcher, argLiteral[0], `(.+)`, 1)
 		args = append(args, token.Identifier{Matcher: "^" + argLiteral[1] + "\\b", Literal: argLiteral[1]})
-		fmt.Printf("argLiteral[1]: %s\n", argLiteral[1])
 	}
 
 	newScope := scope.New(l.currentScope, identifier)
@@ -274,10 +278,10 @@ func (l *Lexer) appendCallArgs(line string, matcher *regexp.Regexp) {
 		l.tokenBuffer = append(l.tokenBuffer, token.Token{Type: token.CALL, Literal: strings.TrimSpace(line)})
 
 		for i, arg := range callArgs {
-			argLexer := New(arg)
+			argLexer := New(arg, l.GlobalScope, l.currentScope)
 			argToken := argLexer.NextToken()
 
-			for argToken.Type != token.EOF {
+			for argToken.Type != token.EOF && argToken.Type != token.ENDL {
 				l.tokenBuffer = append(l.tokenBuffer, argToken)
 				argToken = argLexer.NextToken()
 			}
@@ -350,7 +354,7 @@ func omitWhitespace(str string, pos int) int {
 func createMatcher(literal string) string {
 	trimmed := strings.TrimSpace(literal)
 	start := "^"
-	end := `$`
+	end := `\s`
 	return start + trimmed + end
 }
 
