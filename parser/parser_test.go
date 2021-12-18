@@ -171,6 +171,7 @@ func TestParsingPrefixExpression(t *testing.T) {
 	}{
 		{"!5", "!", 5.0},
 		{"-15", "-", 15.0},
+		{"* 15", "*", 15.0},
 	}
 
 	for _, tt := range prefixTests {
@@ -290,6 +291,10 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 			"!(true == true)",
 			"(!(true == true))",
 		},
+		{
+			"* 12 + 2",
+			"* (12 + 2)",
+		},
 	}
 
 	for _, tt := range tests {
@@ -404,6 +409,65 @@ func TestCallExpressionParsing(t *testing.T) {
 
 func TestAssignExpressions(t *testing.T) {
 	input := `test = false`
+
+	l := lexer.New(input, nil, nil)
+	p := New(l)
+	program := p.ParseProgram()
+	testProgram(t, program, 1)
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("Statement is not expected=%s, got=%T", "ast.ExpressionStatement", program.Statements[0])
+	}
+
+	exp, ok := stmt.Expression.(*ast.AssignExpression)
+	if !ok {
+		t.Fatalf("Expression is not expected=%s, got=%T", "ast.IfExpression", stmt.Expression)
+	}
+
+	if !testIdentifier(t, exp.Name, "test") {
+		return
+	}
+
+	if !testLiteralExpression(t, exp.Value, false) {
+		return
+	}
+}
+
+func TestListExpressions(t *testing.T) {
+	input := `* 12
+	* 1 + 2
+	* false`
+
+	l := lexer.New(input, nil, nil)
+	p := New(l)
+	program := p.ParseProgram()
+	testProgram(t, program, 1)
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("Statement is not expected=%s, got=%T", "ast.ExpressionStatement", program.Statements[0])
+	}
+
+	exp, ok := stmt.Expression.(*ast.ListExpression)
+	if !ok {
+		t.Fatalf("Expression is not expected=%s, got=%T", "ast.ListExpression", stmt.Expression)
+	}
+
+	if !testLiteralExpression(t, exp.Elements[0], 12.0) {
+		return
+	}
+	if !testInfixExpression(t, exp.Elements[1], 1, "+", 2) {
+		return
+	}
+	if !testLiteralExpression(t, exp.Elements[2], false) {
+		return
+	}
+}
+
+func TestColonAssignExpressions(t *testing.T) {
+	input := `test: 
+	false`
 
 	l := lexer.New(input, nil, nil)
 	p := New(l)

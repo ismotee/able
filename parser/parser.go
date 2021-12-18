@@ -68,6 +68,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.NUMBER, p.parseNumberLiteral)
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
+	p.registerPrefix(token.ASTERISK, p.parseListExpression)
 	p.registerPrefix(token.TRUE, p.parseBoolean)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
@@ -245,6 +246,25 @@ func (p *Parser) parseStringLiteral() ast.Expression {
 	return &ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal}
 }
 
+func (p *Parser) parseListExpression() ast.Expression {
+	expression := &ast.ListExpression{Token: p.curToken}
+
+	for p.curToken.Type == token.ASTERISK {
+		expression.Elements = append(expression.Elements, p.parseListItemExpression())
+		p.nextToken()
+	}
+
+	return expression
+}
+
+func (p *Parser) parseListItemExpression() ast.Expression {
+	p.nextToken()
+	expression := p.parseExpression(LOWEST)
+	p.ignoreToken(token.ENDL)
+
+	return expression
+}
+
 func (p *Parser) parsePrefixExpression() ast.Expression {
 	expression := &ast.PrefixExpression{Token: p.curToken, Operator: p.curToken.Literal}
 
@@ -269,6 +289,7 @@ func (p *Parser) parseAssignExpression(left ast.Expression) ast.Expression {
 	expression := &ast.AssignExpression{Token: p.curToken, Name: left.(*ast.Identifier)}
 
 	precedence := p.curPrecedence()
+	p.ignoreToken(token.ENDL)
 	p.nextToken()
 	expression.Value = p.parseExpression(precedence)
 
@@ -341,4 +362,10 @@ func (p *Parser) curPrecedence() int {
 	}
 
 	return LOWEST
+}
+
+func (p *Parser) ignoreToken(tok token.TokenType) {
+	for p.peekTokenIs(tok) {
+		p.nextToken()
+	} // Just skip this type of tokens
 }

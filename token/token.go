@@ -18,6 +18,7 @@ const (
 	CALL_END = "CALL_END"
 	ARG_END  = "ARG_END"
 
+	COLON    = ":"
 	ASSIGN   = "="
 	RETURN   = "="
 	PLUS     = "+"

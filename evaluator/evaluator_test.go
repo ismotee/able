@@ -161,6 +161,9 @@ func TestAssignStatements(t *testing.T) {
 		A very long identifier = 10
 		A very long identifier`,
 			10.0},
+		{`test:
+		10
+		test`, 10.0},
 	}
 
 	for _, tt := range tests {
@@ -185,6 +188,26 @@ func TestDeclarationsAndCalls(t *testing.T) {
 		testNumberObject(t, evaluated, tt.expected)
 	}
 
+}
+
+func TestLists(t *testing.T) {
+	input := `* 1
+	* 2 * 2
+	* 3 + 3`
+
+	evaluated := testEval(input)
+	result, ok := evaluated.(*object.List)
+	if !ok {
+		t.Fatalf("object is not List, got=%T (%+v)", evaluated, evaluated)
+	}
+
+	if len(result.Elements) != 3 {
+		t.Fatalf("List has wrong num of elements, got=%d", len(result.Elements))
+	}
+
+	testNumberObject(t, result.Elements[0], 1)
+	testNumberObject(t, result.Elements[1], 4)
+	testNumberObject(t, result.Elements[2], 6)
 }
 
 func testEval(input string) object.Object {

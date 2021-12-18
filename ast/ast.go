@@ -259,3 +259,21 @@ func (ce *CallExpression) String() string {
 
 	return out.String()
 }
+
+type ListExpression struct {
+	Token    token.Token
+	Elements []Expression
+}
+
+func (le *ListExpression) expressionNode()      {}
+func (le *ListExpression) TokenLiteral() string { return le.Token.Literal }
+func (le *ListExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString(":\n")
+	for _, el := range le.Elements {
+		out.WriteString(el.String() + "\n")
+	}
+
+	return out.String()
+}

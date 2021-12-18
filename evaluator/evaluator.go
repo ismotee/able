@@ -70,6 +70,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return &object.String{Value: node.Value}
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
+	case *ast.ListExpression:
+		return evalList(node, env)
 	}
 
 	return nil
@@ -200,6 +202,12 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object
 		return nil
 	}
 	return val
+}
+
+func evalList(node *ast.ListExpression, env *object.Environment) object.Object {
+	elements := evalExpressions(node.Elements, env)
+	// TODO: error handling
+	return &object.List{Elements: elements}
 }
 
 func isTruthy(obj object.Object) bool {

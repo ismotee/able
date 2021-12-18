@@ -98,6 +98,8 @@ func (l *Lexer) NextToken() token.Token {
 		} else {
 			tok = newToken(token.RETURN, l.ch)
 		}
+	case ':':
+		tok = newToken(token.ASSIGN, l.ch)
 	case '"':
 		tok.Type = token.STRING
 		tok.Literal = l.readString()
@@ -142,7 +144,7 @@ func (l *Lexer) NextToken() token.Token {
 			}
 			identStr := strings.TrimSpace(l.input[firstPos:l.position])
 
-			if l.ch == '=' && l.PeekChar() != '=' {
+			if (l.ch == '=' && l.PeekChar() != '=') || l.ch == ':' {
 				tok.Literal = identStr
 				tok.Type = token.IDENT
 				l.currentScope.Identifiers = append(l.currentScope.Identifiers, token.Identifier{Literal: identStr, Matcher: "^" + identStr + "\\b"})

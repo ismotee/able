@@ -222,3 +222,63 @@ func TestNextTokenString(t *testing.T) {
 		}
 	}
 }
+
+func TestColonAssignment(t *testing.T) {
+	input := `todo:
+	123`
+
+	tests := []struct {
+		expectedType    token.TokenType
+		expectedLiteral string
+	}{
+		{token.IDENT, "todo"},
+		{token.COLON, ":"},
+		{token.ENDL, "\n"},
+		{token.NUMBER, "123"},
+		{token.EOF, ""},
+	}
+
+	l := New(input, nil, nil)
+
+	for i, tt := range tests {
+		tok := l.NextToken()
+		fmt.Printf("current token in test: %s, %s\n", tok.Literal, tok.Type)
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("Test number %d: Token literal is not expected '%s', got='%s'", i, tt.expectedLiteral, tok.Literal)
+		}
+
+		if tok.Type != tt.expectedType {
+			t.Fatalf("Test number %d: Token '%s' is not expected type '%s', got=%s", i, tok.Literal, tt.expectedType, tok.Type)
+		}
+	}
+}
+
+func TestList(t *testing.T) {
+	input := `* 123
+	* "foobar"`
+
+	tests := []struct {
+		expectedType    token.TokenType
+		expectedLiteral string
+	}{
+		{token.ASTERISK, "*"},
+		{token.NUMBER, "123"},
+		{token.ENDL, "\n"},
+		{token.ASTERISK, "*"},
+		{token.STRING, "foobar"},
+	}
+
+	l := New(input, nil, nil)
+
+	for i, tt := range tests {
+		tok := l.NextToken()
+		fmt.Printf("current token in test: %s, %s\n", tok.Literal, tok.Type)
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("Test number %d: Token literal is not expected '%s', got='%s'", i, tt.expectedLiteral, tok.Literal)
+		}
+
+		if tok.Type != tt.expectedType {
+			t.Fatalf("Test number %d: Token '%s' is not expected type '%s', got=%s", i, tok.Literal, tt.expectedType, tok.Type)
+		}
+	}
+}
