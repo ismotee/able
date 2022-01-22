@@ -9,6 +9,7 @@ type Token struct {
 
 const (
 	ILLEGAL = "ILLEGAL"
+	UNKNOWN = "UNKNOWN"
 	EOF     = "EOF"
 
 	NUMBER   = "NUMBER"
@@ -44,6 +45,8 @@ const (
 	ELSE  = "ELSE"
 	TRUE  = "TRUE"
 	FALSE = "FALSE"
+	GET   = "GET"
+	FROM  = "FROM"
 )
 
 var keywords = map[string]TokenType{
@@ -51,11 +54,13 @@ var keywords = map[string]TokenType{
 	"else":  ELSE,
 	"true":  TRUE,
 	"false": FALSE,
+	"get":   GET,
+	"from":  FROM,
 }
 
 func LookupIdent(ident string) TokenType {
 	if tok, ok := keywords[ident]; ok {
 		return tok
 	}
-	return IDENT
+	return UNKNOWN
 }

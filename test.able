@@ -1,4 +1,8 @@
-4 apples
-
-# (nbr x) apples 
- = nbr x + 1
+get barbar from bar
+	# foo
+	= 2
+	
+	# bar
+	= foo
+	## barbar
+	= 3

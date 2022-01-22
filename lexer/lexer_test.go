@@ -80,12 +80,12 @@ func TestNextToken(t *testing.T) {
 		{token.ENDL, "\n"},
 		{token.NOT_EQ, "!="},
 		{token.ENDL, "\n"},
-		{token.IDENT, "add (x) to (value y)"},
-		{token.CALL, "add 1 to 10"},
+		{token.CALL, "add (x) to (value y)"},
 		{token.NUMBER, "1"},
 		{token.ARG_END, ""},
 		{token.NUMBER, "10"},
 		{token.CALL_END, ""},
+		{token.ENDL, "\n"},
 		{token.NUMBER, "1"},
 		{token.EOF, ""},
 	}
@@ -115,12 +115,12 @@ func TestNextTokenDeclaration(t *testing.T) {
 		expectedType    token.TokenType
 		expectedLiteral string
 	}{
-		{token.IDENT, "add (x) to (value y)"},
-		{token.CALL, "add 1 to 10"},
+		{token.CALL, "add (x) to (value y)"},
 		{token.NUMBER, "1"},
 		{token.ARG_END, ""},
 		{token.NUMBER, "10"},
 		{token.CALL_END, ""},
+		{token.ENDL, "\n"},
 		{token.ENDL, "\n"},
 		{token.DECLARE, "#"},
 		{token.IDENT, "add (x) to (value y)"},
@@ -159,10 +159,10 @@ func TestNextTokenDeclarationWithArgumentFirst(t *testing.T) {
 		expectedType    token.TokenType
 		expectedLiteral string
 	}{
-		{token.IDENT, "(x) apples"},
-		{token.CALL, "3 apples"},
+		{token.CALL, "(x) apples"},
 		{token.NUMBER, "3"},
 		{token.CALL_END, ""},
+		{token.ENDL, "\n"},
 		{token.ENDL, "\n"},
 		{token.DECLARE, "#"},
 		{token.IDENT, "(x) apples"},
@@ -232,7 +232,7 @@ func TestColonAssignment(t *testing.T) {
 		expectedLiteral string
 	}{
 		{token.IDENT, "todo"},
-		{token.COLON, ":"},
+		{token.ASSIGN, ":"},
 		{token.ENDL, "\n"},
 		{token.NUMBER, "123"},
 		{token.EOF, ""},
@@ -266,6 +266,68 @@ func TestList(t *testing.T) {
 		{token.ENDL, "\n"},
 		{token.ASTERISK, "*"},
 		{token.STRING, "foobar"},
+	}
+
+	l := New(input, nil, nil)
+
+	for i, tt := range tests {
+		tok := l.NextToken()
+		fmt.Printf("current token in test: %s, %s\n", tok.Literal, tok.Type)
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("Test number %d: Token literal is not expected '%s', got='%s'", i, tt.expectedLiteral, tok.Literal)
+		}
+
+		if tok.Type != tt.expectedType {
+			t.Fatalf("Test number %d: Token '%s' is not expected type '%s', got=%s", i, tok.Literal, tt.expectedType, tok.Type)
+		}
+	}
+}
+
+func TestScope(t *testing.T) {
+	input := `get barbar from bar
+	barbar
+	# foo
+	= 2
+	
+	# bar
+	= foo
+	## barbar
+	= 3`
+
+	tests := []struct {
+		expectedType    token.TokenType
+		expectedLiteral string
+	}{
+		{token.GET, "get"},
+		{token.IDENT, "barbar"},
+		{token.FROM, "from"},
+		{token.IDENT, "bar"},
+		{token.ENDL, "\n"},
+		{token.CALL, "barbar"},
+		{token.DECLARE, "#"},
+		{token.IDENT, "foo"},
+		{token.DECL_END, ""},
+		{token.ENDL, "\n"},
+		{token.RETURN, "="},
+		{token.NUMBER, "2"},
+		{token.ENDL, "\n"},
+		{token.ENDL, "\n"},
+		{token.DECLARE, "#"},
+		{token.IDENT, "bar"},
+		{token.DECL_END, ""},
+		{token.ENDL, "\n"},
+		{token.RETURN, "="},
+		{token.CALL, "foo"},
+		{token.CALL_END, ""},
+		{token.ENDL, "\n"},
+		{token.DECLARE, "#"},
+		{token.DECLARE, "#"},
+		{token.IDENT, "barbar"},
+		{token.DECL_END, ""},
+		{token.ENDL, "\n"},
+		{token.RETURN, "="},
+		{token.NUMBER, "3"},
+		{token.EOF, ""},
 	}
 
 	l := New(input, nil, nil)

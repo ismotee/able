@@ -45,6 +45,7 @@ type Declaration struct {
 	Name       *Identifier
 	Parameters []*Identifier
 	Body       *BlockStatement
+	ScopeDepth int
 }
 
 func (d *Declaration) statementNode() {}

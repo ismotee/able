@@ -171,7 +171,6 @@ func TestParsingPrefixExpression(t *testing.T) {
 	}{
 		{"!5", "!", 5.0},
 		{"-15", "-", 15.0},
-		{"* 15", "*", 15.0},
 	}
 
 	for _, tt := range prefixTests {
@@ -293,7 +292,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		},
 		{
 			"* 12 + 2",
-			"* (12 + 2)",
+			":\n(12 + 2)\n",
 		},
 	}
 

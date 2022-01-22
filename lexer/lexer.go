@@ -22,7 +22,7 @@ type Lexer struct {
 
 func New(input string, global, current *scope.Scope) *Lexer {
 	if global == nil {
-		global = scope.New(nil, token.Identifier{Literal: "GLOBAL", Matcher: `^GLOBAL\b`})
+		global = scope.New(nil, token.Identifier{Literal: "GLOBAL", Matcher: `^GLOBAL\b`}, 0)
 	}
 	if current == nil {
 		current = global
@@ -51,36 +51,57 @@ func (l *Lexer) NextToken() token.Token {
 
 	if l.ch != 0 && l.ch != '#' && l.ch != '=' {
 		line := strings.TrimSpace(l.getLine())
-		scope := l.currentScope.FindScope(line)
+		ident, identLength := l.currentScope.FindIdentifier(line + "\n")
 
-		if scope != nil {
-			ident := scope.ScopeIdentifier
-			tok.Type = token.IDENT
-			tok.Literal = ident.Literal
-
-			if l.lastToken.Type == token.DECLARE {
+		if ident != nil {
+			// handle declares first
+			if l.lastToken != nil && l.lastToken.Type == token.DECLARE {
+				scope := l.currentScope.FindScope(line)
+				tok.Type = token.IDENT
 				l.currentScope = scope
 				l.appendDeclParameters(line+"\n", regexp.MustCompile(ident.Matcher))
+			} else if ident.Type == token.VAR || l.lastToken.Type == token.FROM {
+				tok.Type = token.IDENT
+			} else {
+				matcher := regexp.MustCompile(ident.Matcher)
+				tok.Type = token.CALL
+				l.appendCallArgs(line+"\n", matcher)
 			}
+
+			tok.Literal = ident.Literal
 			l.lastToken = &tok
 
 			// some manual setup for HEAD
-			l.readPosition += len(ident.Literal) - 1
+			if (identLength - 1) == len(line) {
+				// endl
+				l.readPosition -= 1
+			}
+
+			l.readPosition += identLength - 1
 			l.readChar()
 
 			return tok
-		} else if ident := l.currentScope.FindIdentifier(line + "\n"); ident != nil {
-			tok.Type = token.IDENT
-			tok.Literal = ident.Literal
+		}
 
-			matcher := regexp.MustCompile(ident.Matcher)
-			literal := matcher.FindString(line + "\n")
-			l.appendCallArgs(line+"\n", matcher)
+		if phrase, args, length := token.LookupPhrase(line + "\n"); phrase != nil {
+			tok.Type = phrase.Type
+			tok.Literal = phrase.Literal
 
-			l.lastToken = &tok
+			for i, arg := range args {
+				argLexer := New(arg+"\n", l.GlobalScope, l.currentScope)
+				argToken := argLexer.NextToken()
 
-			// some manual setup for HEAD
-			l.readPosition += len(literal) - 1
+				for argToken.Type != token.EOF && argToken.Type != token.ENDL {
+					l.tokenBuffer = append(l.tokenBuffer, argToken)
+					argToken = argLexer.NextToken()
+				}
+
+				if i != len(args)-1 {
+					l.tokenBuffer = append(l.tokenBuffer, token.Token{Type: token.ARG_END, Literal: ""})
+				}
+			}
+
+			l.readPosition += length
 			l.readChar()
 
 			return tok
@@ -147,22 +168,22 @@ func (l *Lexer) NextToken() token.Token {
 			if (l.ch == '=' && l.PeekChar() != '=') || l.ch == ':' {
 				tok.Literal = identStr
 				tok.Type = token.IDENT
-				l.currentScope.Identifiers = append(l.currentScope.Identifiers, token.Identifier{Literal: identStr, Matcher: "^" + identStr + "\\b"})
+				l.currentScope.Identifiers = append(l.currentScope.Identifiers, token.Identifier{Literal: identStr, Matcher: "^" + identStr + "\\b", Type: token.VAR})
 				return tok
 			} else {
 				splitted := strings.Split(identStr, " ")
 				firstWord := splitted[0]
 				splitted = splitted[1:]
 
-				if tokenType := token.LookupIdent(firstWord); tokenType != token.IDENT {
+				if tokenType := token.LookupIdent(firstWord); tokenType != token.UNKNOWN {
 					tok.Type = tokenType
 					tok.Literal = firstWord
 				} else {
-					return token.Token{Type: token.ILLEGAL, Literal: firstWord}
+					return token.Token{Type: token.UNKNOWN, Literal: firstWord}
 				}
 
 				for len(splitted) > 0 {
-					if ident := l.currentScope.FindIdentifier(strings.Join(splitted, " ")); ident != nil {
+					if ident, _ := l.currentScope.FindIdentifier(strings.Join(splitted, " ")); ident != nil {
 						newToken := token.Token{Type: token.IDENT, Literal: ident.Literal}
 						l.tokenBuffer = append(l.tokenBuffer, newToken)
 						return tok
@@ -171,11 +192,14 @@ func (l *Lexer) NextToken() token.Token {
 					word := splitted[0]
 					splitted = splitted[1:]
 
-					if tokenType := token.LookupIdent(word); tokenType != token.IDENT {
+					if tokenType := token.LookupIdent(word); tokenType != token.UNKNOWN {
 						newToken := token.Token{Type: tokenType, Literal: word}
 						l.tokenBuffer = append(l.tokenBuffer, newToken)
+					} else if tok.Type == token.GET || tok.Type == token.FROM {
+						newToken := token.Token{Type: token.IDENT, Literal: word}
+						l.tokenBuffer = append(l.tokenBuffer, newToken)
 					} else {
-						return token.Token{Type: token.ILLEGAL, Literal: word}
+						return token.Token{Type: token.UNKNOWN, Literal: word}
 					}
 				}
 
@@ -241,6 +265,7 @@ func (l *Lexer) registerDeclaration(line string, pos int) {
 	identifier := token.Identifier{}
 	identifier.Literal = strings.TrimSpace(line[pos:])
 	identifier.Matcher = createMatcher(identifier.Literal)
+	identifier.Type = token.FUNC
 
 	findArgsExp := regexp.MustCompile(`\((.*?)\)`)
 	argLiterals := findArgsExp.FindAllStringSubmatch(identifier.Matcher, -1)
@@ -248,12 +273,12 @@ func (l *Lexer) registerDeclaration(line string, pos int) {
 	args := []token.Identifier{}
 	for _, argLiteral := range argLiterals {
 		identifier.Matcher = strings.Replace(identifier.Matcher, argLiteral[0], `(.+)`, 1)
-		args = append(args, token.Identifier{Matcher: "^" + argLiteral[1] + "\\b", Literal: argLiteral[1]})
+		args = append(args, token.Identifier{Matcher: "^" + argLiteral[1] + "\\b", Literal: argLiteral[1], Type: token.VAR})
 	}
 
-	newScope := scope.New(l.currentScope, identifier)
+	newScope := scope.New(l.currentScope, identifier, scopeDepth)
 	newScope.Identifiers = args
-	l.currentScope.InnerScopes = append(l.currentScope.InnerScopes, *newScope)
+	l.currentScope.InnerScopes = append(l.currentScope.InnerScopes, newScope)
 	l.currentScope.Identifiers = append(l.currentScope.Identifiers, identifier)
 	l.currentScope = newScope
 }
@@ -276,24 +301,21 @@ func (l *Lexer) appendDeclParameters(line string, matcher *regexp.Regexp) {
 func (l *Lexer) appendCallArgs(line string, matcher *regexp.Regexp) {
 	callArgs := matcher.FindAllStringSubmatch(line, -1)[0][1:]
 
-	if len(callArgs) > 0 {
-		l.tokenBuffer = append(l.tokenBuffer, token.Token{Type: token.CALL, Literal: strings.TrimSpace(line)})
+	for i, arg := range callArgs {
+		argLexer := New(arg, l.GlobalScope, l.currentScope)
+		argToken := argLexer.NextToken()
 
-		for i, arg := range callArgs {
-			argLexer := New(arg, l.GlobalScope, l.currentScope)
-			argToken := argLexer.NextToken()
-
-			for argToken.Type != token.EOF && argToken.Type != token.ENDL {
-				l.tokenBuffer = append(l.tokenBuffer, argToken)
-				argToken = argLexer.NextToken()
-			}
-
-			if i != len(callArgs)-1 {
-				l.tokenBuffer = append(l.tokenBuffer, token.Token{Type: token.ARG_END, Literal: ""})
-			}
+		for argToken.Type != token.EOF && argToken.Type != token.ENDL {
+			l.tokenBuffer = append(l.tokenBuffer, argToken)
+			argToken = argLexer.NextToken()
 		}
-		l.tokenBuffer = append(l.tokenBuffer, token.Token{Type: token.CALL_END, Literal: ""})
+
+		if i != len(callArgs)-1 {
+			l.tokenBuffer = append(l.tokenBuffer, token.Token{Type: token.ARG_END, Literal: ""})
+		}
 	}
+
+	l.tokenBuffer = append(l.tokenBuffer, token.Token{Type: token.CALL_END, Literal: ""})
 }
 
 func (l *Lexer) skipWhitespace() {

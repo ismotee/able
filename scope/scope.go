@@ -9,23 +9,24 @@ type Scope struct {
 	Depth           int
 	ScopeIdentifier token.Identifier
 	OuterScope      *Scope
-	InnerScopes     []Scope
+	InnerScopes     []*Scope
 
 	Identifiers []token.Identifier
 }
 
-func New(outerScope *Scope, ident token.Identifier) *Scope {
+func New(outerScope *Scope, ident token.Identifier, depth int) *Scope {
 	if outerScope != nil {
-		return &Scope{Depth: outerScope.Depth + 1, OuterScope: outerScope, ScopeIdentifier: ident}
+		return &Scope{Depth: depth, OuterScope: outerScope, ScopeIdentifier: ident}
 	}
 	return &Scope{Depth: 0}
 }
 
-func (s *Scope) FindIdentifier(term string) *token.Identifier {
+func (s *Scope) FindIdentifier(term string) (*token.Identifier, int) {
 	for _, ident := range s.Identifiers {
 		matcher := regexp.MustCompile(ident.Matcher)
 		if matcher.MatchString(term) {
-			return &ident
+			rng := matcher.FindStringIndex(term)
+			return &ident, rng[1] - rng[0]
 		}
 	}
 
@@ -33,13 +34,13 @@ func (s *Scope) FindIdentifier(term string) *token.Identifier {
 		return s.OuterScope.FindIdentifier(term)
 	}
 
-	return nil
+	return nil, 0
 }
 
 func (s *Scope) FindScope(term string) *Scope {
 	for _, innerScope := range s.InnerScopes {
 		if term == innerScope.ScopeIdentifier.Literal {
-			return &innerScope
+			return innerScope
 		}
 	}
 

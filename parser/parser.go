@@ -4,7 +4,6 @@ import (
 	"able/ast"
 	"able/lexer"
 	"able/token"
-	"fmt"
 	"strconv"
 )
 
@@ -73,6 +72,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
+	p.registerPrefix(token.CALL, p.parseCallExpression)
 
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -84,7 +84,6 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LT, p.parseInfixExpression)
 	p.registerInfix(token.GT, p.parseInfixExpression)
 	p.registerInfix(token.IF, p.parseIfExpression)
-	p.registerInfix(token.CALL, p.parseCallExpression)
 	p.registerInfix(token.ASSIGN, p.parseAssignExpression)
 
 	p.nextToken()
@@ -128,10 +127,14 @@ func (p *Parser) parseStatement() ast.Statement {
 func (p *Parser) parseDeclaration() *ast.Declaration {
 	stmt := &ast.Declaration{Token: p.curToken}
 
-	if !p.expectPeek(token.IDENT) {
-		fmt.Printf("Halt: no Identifier for Declaration, got=%+v\n, curToken=%+v\n", p.peekToken, p.curToken)
-		return nil
+	depth := 1
+
+	for p.curToken.Type == token.DECLARE {
+		depth += 1
+		p.nextToken()
 	}
+
+	// todo: make sure next token is identifier
 
 	stmt.Name = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 	stmt.Parameters = p.parseDeclarationParams()
@@ -309,8 +312,8 @@ func (p *Parser) parseIfExpression(left ast.Expression) ast.Expression {
 	return expression
 }
 
-func (p *Parser) parseCallExpression(left ast.Expression) ast.Expression {
-	exp := &ast.CallExpression{Token: p.curToken, Function: left}
+func (p *Parser) parseCallExpression() ast.Expression {
+	exp := &ast.CallExpression{Token: p.curToken, Function: p.parseIdentifier()}
 	exp.Arguments = p.parseCallArguments()
 
 	return exp
