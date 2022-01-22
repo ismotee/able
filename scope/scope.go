@@ -1,51 +1,46 @@
 package scope
 
 import (
-	"able/token"
+	"able/phrase"
 	"regexp"
 )
 
 type Scope struct {
-	Depth           int
-	ScopeIdentifier token.Identifier
-	OuterScope      *Scope
-	InnerScopes     []Scope
-
-	Identifiers []token.Identifier
+	Lines       []string
+	NameSpace   []phrase.Phrase
+	OuterScope  *Scope
+	InnerScopes []Scope
+	Depth       int
 }
 
-func New(outerScope *Scope, ident token.Identifier) *Scope {
-	if outerScope != nil {
-		return &Scope{Depth: outerScope.Depth + 1, OuterScope: outerScope, ScopeIdentifier: ident}
-	}
-	return &Scope{Depth: 0}
-}
+func ResolveScopes(lines []string, currentScope *Scope) {
+	for i, line := range lines {
+		declareMatcher := regexp.MustCompile(`(?P<scope>[#]+) (?P<name>.*)`)
+		match := declareMatcher.FindStringSubmatch(line)
 
-func (s *Scope) FindIdentifier(term string) *token.Identifier {
-	for _, ident := range s.Identifiers {
-		matcher := regexp.MustCompile(ident.Matcher)
-		if matcher.MatchString(term) {
-			return &ident
+		if len(match) != 0 {
+			declaration := groupMatch(declareMatcher, match)
+			depth := len(declaration["scope"])
+			if depth > currentScope.Depth {
+				newScope := Scope{OuterScope: currentScope, Depth: depth}
+				newPhrase := phrase.Phrase{Matcher: declaration["name"], KeyWord: "IDENT", ArgNames: []string{}}
+
+				currentScope.NameSpace = append(currentScope.NameSpace, newPhrase)
+				currentScope.InnerScopes = append(currentScope.InnerScopes, newScope)
+				ResolveScopes(lines[:i], &newScope)
+			}
+		} else {
+			currentScope.Lines = append(currentScope.Lines, line)
 		}
 	}
-
-	if s.OuterScope != nil {
-		return s.OuterScope.FindIdentifier(term)
-	}
-
-	return nil
 }
 
-func (s *Scope) FindScope(term string) *Scope {
-	for _, innerScope := range s.InnerScopes {
-		if term == innerScope.ScopeIdentifier.Literal {
-			return &innerScope
+func groupMatch(matcher *regexp.Regexp, match []string) map[string]string {
+	result := make(map[string]string)
+	for i, name := range matcher.SubexpNames() {
+		if i != 0 && name != "" {
+			result[name] = match[i]
 		}
 	}
-
-	if s.OuterScope != nil {
-		return s.OuterScope.FindScope(term)
-	}
-
-	return nil
+	return result
 }

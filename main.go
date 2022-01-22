@@ -1,10 +1,7 @@
 package main
 
 import (
-	"able/evaluator"
 	"able/lexer"
-	"able/object"
-	"able/parser"
 	"bytes"
 	"fmt"
 	"io/ioutil"
@@ -34,10 +31,6 @@ func main() {
 	var source bytes.Buffer
 	source.Write(b)
 
-	l := lexer.New(source.String(), nil, nil)
-	p := parser.New(l)
-	program := p.ParseProgram()
-	env := object.NewEnvironment()
-
-	evaluator.Eval(program, env)
+	l := lexer.New(source.String())
+	l.GenerateProto()
 }
