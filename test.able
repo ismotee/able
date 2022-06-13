@@ -1,8 +1,0 @@
-get barbar from bar
-	# foo
-	= 2
-	
-	# bar
-	= foo
-	## barbar
-	= 3
