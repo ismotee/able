@@ -4,6 +4,9 @@
 
 void SemanticAnalyzer::analyze()
 {
+  // put this in somewhere better place in the future
+  keyphrases::prepare();
+
   handleDefinitions();
   prepareTokens();
   gatherDefinitions();
@@ -14,66 +17,91 @@ void SemanticAnalyzer::analyze()
 
 void SemanticAnalyzer::handleDefinitions()
 {
-  for (auto it = tokens.begin(); it != tokens.end(); ++it)
+  srcIt = tokens.begin();
+  while (srcIt != tokens.end())
   {
-    auto token = *it;
-    switch (token->type)
+    switch ((*srcIt)->type)
     {
     case TokenType::LBRACKET:
-      it = createLink(it);
+      createLink();
       break;
     case TokenType::HASH:
-      it = createDeclaration(it);
+      createDeclaration();
       break;
     case TokenType::EQUALS:
-      it = createAssignment(it);
+      createAssignment();
       break;
     default:
-      analyzedTokens.push_back(token);
+      analyzedTokens.push_back(*srcIt);
+      break;
     }
+    ++srcIt;
   }
 }
 
 void SemanticAnalyzer::gatherDefinitions()
 {
-  for (auto it = tokens.begin(); it != tokens.end(); ++it)
+  srcIt = tokens.begin();
+  while (srcIt != tokens.end())
   {
-    auto token = *it;
-    if (token->type == TokenType::IDENTIFIER)
+    if ((*srcIt)->type == TokenType::IDENTIFIER)
     {
-      definitions.push_back(token);
+      definitions.push_back(*srcIt);
     }
+    ++srcIt;
   }
 }
 
 void SemanticAnalyzer::handleCalls()
 {
-  for (auto it = tokens.begin(); it != tokens.end(); ++it)
+  srcIt = tokens.begin();
+  while (srcIt != tokens.end())
   {
-    auto token = *it;
-    switch (token->type)
+    switch ((*srcIt)->type)
     {
     case TokenType::WORD:
     {
-      if (token->partOf == NULL)
+      if ((*srcIt)->partOf == NULL)
       {
-        it = searchIdentifier(it);
+        searchIdentifier();
       }
       else
       {
-        analyzedTokens.push_back(token);
+        analyzedTokens.push_back(*srcIt);
       }
       break;
     }
     default:
-      analyzedTokens.push_back(token);
+      analyzedTokens.push_back(*srcIt);
     }
+    ++srcIt;
   }
 }
 
 void SemanticAnalyzer::handleKeywords()
 {
-  analyzedTokens = tokens;
+  srcIt = tokens.begin();
+  while (srcIt != tokens.end())
+  {
+    switch ((*srcIt)->type)
+    {
+    case TokenType::WORD:
+    {
+      if ((*srcIt)->partOf == nullptr)
+      {
+        searchKeyPhrase();
+      }
+      else
+      {
+        analyzedTokens.push_back(*srcIt);
+      }
+      break;
+    }
+    default:
+      analyzedTokens.push_back(*srcIt);
+    }
+    ++srcIt;
+  }
 }
 
 void SemanticAnalyzer::prepareTokens()
@@ -81,73 +109,57 @@ void SemanticAnalyzer::prepareTokens()
   tokens = analyzedTokens;
   analyzedTokens = {};
 
-  if (tokens.size() < 2)
-  {
-    return;
-  }
-
-  // link tokens
-  for (u_int i = 1; i < tokens.size(); ++i)
-  {
-    std::cout << tokens[i - 1]->literal << "\n";
-    tokens[i - 1]->next = tokens[i];
-  }
+  token::linkTokens(tokens);
 }
 
-template <typename Iterator>
-Iterator SemanticAnalyzer::createLink(Iterator it)
+void SemanticAnalyzer::createLink()
 {
   auto importToken = std::make_shared<Import>();
   analyzedTokens.push_back(importToken);
-  it = createIdentifier(++it, importToken, {TokenType::RBRACKET});
+  ++srcIt;
+  createIdentifier(importToken, {TokenType::RBRACKET});
 
   auto fromToken = std::make_shared<From>();
   analyzedTokens.push_back(fromToken);
-  ++it;
-  it = createIdentifier(++it, fromToken, {TokenType::RBRACKET});
-
-  return it;
+  srcIt += 2;
+  createIdentifier(fromToken, {TokenType::RBRACKET});
 }
 
-template <typename Iterator>
-Iterator SemanticAnalyzer::createDeclaration(Iterator it)
+void SemanticAnalyzer::createDeclaration()
 {
-  if ((*it)->partOf != NULL)
-    return it;
+  if ((*srcIt)->partOf != NULL)
+    return;
 
   auto declareToken = std::make_shared<Declare>();
   analyzedTokens.push_back(declareToken);
-  it = omitTokens(it, {TokenType::HASH});
+  omitTokens({TokenType::HASH});
 
-  it = createIdentifier(it, declareToken, {TokenType::ENDL, TokenType::END_OF_FILE});
-  analyzedTokens.push_back(*it);
-
-  return it;
+  createIdentifier(declareToken, {TokenType::ENDL, TokenType::END_OF_FILE});
+  analyzedTokens.push_back(*srcIt);
 }
 
-template <typename Iterator>
-Iterator SemanticAnalyzer::createAssignment(Iterator it)
+void SemanticAnalyzer::createAssignment()
 {
-  it = rewindIterator(it, {TokenType::ENDL});
-
-  auto startingIndex = findLastAnalyzedTokenIndex({TokenType::ENDL}) + 1;
-  analyzedTokens.erase(analyzedTokens.begin() + startingIndex, analyzedTokens.end());
+  removeLastAnalyzedLine();
 
   auto assignToken = std::make_shared<Assign>();
   analyzedTokens.push_back(assignToken);
-  it = createIdentifier(it, assignToken, {TokenType::EQUALS});
+  createIdentifier(assignToken, {TokenType::EQUALS});
 
   auto withToken = std::make_shared<With>();
   analyzedTokens.push_back(withToken);
-  it = createExpression(it, withToken, {TokenType::ENDL, TokenType::END_OF_FILE});
-  analyzedTokens.push_back(*it);
-
-  return it;
+  createExpression(withToken, {TokenType::ENDL, TokenType::END_OF_FILE});
+  analyzedTokens.push_back(*srcIt);
 }
 
-template <typename Iterator>
-Iterator SemanticAnalyzer::createIdentifier(
-    Iterator it,
+void SemanticAnalyzer::removeLastAnalyzedLine()
+{
+  rewindIterator({TokenType::ENDL});
+  auto startingIndex = findLastAnalyzedTokenIndex({TokenType::ENDL}) + 1;
+  analyzedTokens.erase(analyzedTokens.begin() + startingIndex, analyzedTokens.end());
+}
+
+void SemanticAnalyzer::createIdentifier(
     std::shared_ptr<Token> partOf,
     std::vector<TokenType> end)
 {
@@ -155,79 +167,73 @@ Iterator SemanticAnalyzer::createIdentifier(
   identifierToken->partOf = partOf;
   analyzedTokens.push_back(identifierToken);
 
-  if ((*it)->isTypeOf(end))
+  if ((*srcIt)->isTypeOf(end))
   {
     throw SYNTAX_ERROR("Expected identifier");
   }
 
-  while (!(*it)->isTypeOf(end))
+  while (!(*srcIt)->isTypeOf(end))
   {
-    if ((*it)->type == TokenType::END_OF_FILE)
+    if ((*srcIt)->type == TokenType::END_OF_FILE)
     {
       throw SYNTAX_ERROR("Unexpected end of file.");
     }
 
-    if ((*it)->type == TokenType::LBRACE)
+    if ((*srcIt)->type == TokenType::LBRACE)
     {
-      it = createParameter(it, identifierToken);
+      createParameter(identifierToken);
       continue;
     }
 
-    analyzedTokens.push_back(*it);
+    analyzedTokens.push_back(*srcIt);
     analyzedTokens.back()->partOf = identifierToken;
-    ++it;
+    ++srcIt;
   }
-
-  return it;
 }
 
-template <typename Iterator>
-Iterator SemanticAnalyzer::createParameter(Iterator it, std::shared_ptr<Token> identifier)
+void SemanticAnalyzer::createParameter(std::shared_ptr<Token> identifier)
 {
   auto parameterToken = std::make_shared<Parameter>();
   parameterToken->partOf = identifier;
   analyzedTokens.push_back(parameterToken);
-  ++it;
+  ++srcIt;
 
-  while ((*it)->type != TokenType::RBRACE)
+  while ((*srcIt)->type != TokenType::RBRACE)
   {
-    if ((*it)->isTypeOf({TokenType::ENDL, TokenType::END_OF_FILE}))
+    if ((*srcIt)->isTypeOf({TokenType::ENDL, TokenType::END_OF_FILE}))
     {
       throw SYNTAX_ERROR("Expected closing brace before end of line.");
     }
 
-    analyzedTokens.push_back(*it);
+    analyzedTokens.push_back(*srcIt);
     analyzedTokens.back()->partOf = parameterToken;
-    ++it;
+    ++srcIt;
   }
-  return ++it;
+  ++srcIt;
 }
 
-template <typename Iterator>
-Iterator SemanticAnalyzer::createExpression(Iterator it, std::shared_ptr<Token> partOf, std::vector<TokenType> end)
+void SemanticAnalyzer::createExpression(std::shared_ptr<Token> partOf, std::vector<TokenType> end)
 {
   auto expressionToken = std::make_shared<Expression>();
   expressionToken->partOf = partOf;
   analyzedTokens.push_back(expressionToken);
 
-  if ((*it)->isTypeOf(end))
+  if ((*srcIt)->isTypeOf(end))
   {
     throw SYNTAX_ERROR("Expected expression");
   }
 
-  while (!(*++it)->isTypeOf(end))
+  while (!(*++srcIt)->isTypeOf(end))
   {
-    analyzedTokens.push_back(*it);
+    analyzedTokens.push_back(*srcIt);
     analyzedTokens.back()->partOf = expressionToken;
   }
-  return it;
 }
 
-template <typename Iterator>
-Iterator SemanticAnalyzer::searchIdentifier(Iterator it)
+void SemanticAnalyzer::searchIdentifier()
 {
   auto possibleDefinitions = definitions;
-  auto startingPoint = it;
+  auto startingPoint = srcIt;
 
   for (int i = possibleDefinitions.size() - 1; i >= 0; --i)
   {
@@ -293,30 +299,202 @@ Iterator SemanticAnalyzer::searchIdentifier(Iterator it)
           definitionToken = definitionToken->next;
         }
 
-        it = createArgument(it, callToken, paramToken, definitionToken);
+        createArgument(callToken, paramToken, definitionToken);
         continue;
       }
-      analyzedTokens.push_back(*it);
+      analyzedTokens.push_back(*srcIt);
       analyzedTokens.back()->partOf = callToken;
-      ++it;
+      ++srcIt;
       definitionToken = definitionToken->next;
     }
   }
   else
   {
-    throw SYNTAX_ERROR("Unknown word");
+    analyzedTokens.push_back(*srcIt);
+    return;
   }
 
-  analyzedTokens.push_back(*it);
-
-  return startingPoint + std::distance(startingPoint, it);
+  analyzedTokens.push_back(*srcIt);
+  return;
 }
 
-template <typename Iterator>
-Iterator SemanticAnalyzer::createArgument(Iterator it,
-                                          std::shared_ptr<Token> callToken,
-                                          std::shared_ptr<Token> paramToken,
-                                          std::shared_ptr<Token> endToken)
+void SemanticAnalyzer::searchKeyPhrase()
+{
+  // this one is tricky.
+  // First of all source needs to be compared to key phrases.
+  // After the match is found there should be some kind of argument harvesting.
+  // Lastly key phrase call will be created from the pregenerated keyphrase list.
+  // Every step here is somewhat complex.
+
+  std::string phraseName;
+
+  // find a key phrase from pre-generated definitions
+  for (auto &keyphrase : keyphrases::builtinKeyPhrases)
+  {
+    // assuming that every keyphrase has at least one token
+    auto curPToken = keyphrase.second.at(0);
+    auto curSToken = (*srcIt);
+    // This is used as a indicator
+    phraseName = keyphrase.first;
+
+    while (curPToken != nullptr && curSToken != nullptr)
+    {
+      // there's three cases in matching:
+      // 1) Tokens match. check next token.
+      // 2a) Key phrase has a parameter. Parameter is at the end of the phrase.
+      //     If so, then it's a match.
+      // 2b) Key phrase has a parameter. Parameter is at the middle of the phrase.
+      //     If so, then source needs to be fast forwarded and checked if there's
+      //     matching token to end the parameter. If so, check next token.
+      // 3) Otherwise it not a match.
+
+      if (curPToken->type == curSToken->type && curPToken->literal == curSToken->literal)
+      {
+        curSToken = curSToken->next;
+        curPToken = curPToken->next;
+      }
+      else if (curPToken->type == TokenType::PARAMETER)
+      {
+        // assuming parameter name to be exactly length of one token.
+        // this is merely a way to make this part of the code a way simpler.
+        curPToken = curPToken->next;
+        curPToken = curPToken->next;
+
+        if (curPToken == nullptr)
+        {
+          // whatever comes after, it is considered as an argument
+          // therefore it is possible to assume that this is a matching keyphrase
+          phraseName = keyphrase.first;
+          break;
+        }
+        else
+        {
+          auto paramEnd = curPToken;
+
+          while (curSToken->type != TokenType::ENDL && curSToken->type != TokenType::END_OF_FILE && curSToken->type == paramEnd->type && curSToken->literal == paramEnd->literal)
+          {
+            curSToken = curSToken->next;
+          }
+
+          if (curSToken->type != TokenType::ENDL && curSToken->type != TokenType::END_OF_FILE)
+          {
+            // most likely this will cause an error later on but there's not enough
+            // information to throw an error at the moment
+            break;
+          }
+        }
+
+        curPToken = curPToken->next;
+        curSToken = curSToken->next;
+      }
+      else
+      {
+        phraseName = "";
+        break;
+      }
+    }
+
+    // match found
+    if (phraseName.length() > 0)
+    {
+      break;
+    }
+  }
+
+  // no match found. Add source token to processed tokens as is
+  // and let the error handling take of it later on.
+  if (phraseName.length() == 0)
+  {
+    analyzedTokens.push_back(*srcIt);
+    return;
+  }
+
+  // get arguments
+  auto keyphrase = keyphrases::builtinKeyPhrases[phraseName];
+  auto pToken = keyphrase[0];
+  auto sToken = (*srcIt);
+  std::vector<Tokens> args;
+  Tokens paramNames = {};
+
+  while (pToken != nullptr)
+  {
+    if (pToken->isTypeOf({TokenType::PARAMETER}))
+    {
+      Tokens arg = {};
+      pToken = pToken->next;
+      paramNames.push_back(pToken);
+      pToken = pToken->next;
+      std::shared_ptr<Token> endToken = pToken;
+
+      if (endToken == nullptr)
+      {
+        while (!sToken->isTypeOf({TokenType::ENDL, TokenType::END_OF_FILE}))
+        {
+          arg.push_back(sToken);
+          sToken = sToken->next;
+        }
+      }
+      else
+      {
+        while (sToken != nullptr && sToken->isTypeOf({endToken->type}) && sToken->literal != endToken->literal)
+        {
+          // at this point there should not need end of file or endl checks because
+          // matching phrase is already found.
+          arg.push_back(sToken);
+          sToken->next;
+        }
+      }
+      args.push_back(arg);
+    }
+    else
+    {
+      pToken = pToken->next;
+      sToken = sToken->next;
+    }
+  }
+
+  // generate a key phrase call
+  auto cToken = keyphrases::builtinPhraseCalls[phraseName].at(0);
+  u_int curArg = 0;
+  u_int callLength = 0;
+
+  while (cToken != nullptr)
+  {
+    if (cToken->isTypeOf({TokenType::ARGUMENT}))
+    {
+      auto argToken = std::make_shared<Argument>();
+      auto exprToken = std::make_shared<Expression>(argToken);
+      analyzedTokens.push_back(argToken);
+      analyzedTokens.push_back(exprToken);
+
+      for (auto it = args[curArg].begin(); it != args[curArg].end(); ++it)
+      {
+        (*it)->partOf = exprToken;
+        (*it)->relatedTo = paramNames[curArg];
+        analyzedTokens.push_back(*it);
+        ++callLength;
+      }
+    }
+    else
+    {
+      analyzedTokens.push_back(cToken);
+      ++callLength;
+    }
+
+    if (cToken != nullptr)
+    {
+      cToken = cToken->next;
+    }
+  }
+
+  srcIt += callLength;
+  return;
+}
+
+void SemanticAnalyzer::createArgument(
+    std::shared_ptr<Token> callToken,
+    std::shared_ptr<Token> paramToken,
+    std::shared_ptr<Token> endToken)
 {
   auto argToken = std::make_shared<Argument>();
   argToken->partOf = callToken;
@@ -329,44 +507,38 @@ Iterator SemanticAnalyzer::createArgument(Iterator it,
     end = {TokenType::ENDL, TokenType::END_OF_FILE};
   }
 
-  if ((*it)->isTypeOf(end))
+  if ((*srcIt)->isTypeOf(end))
   {
     throw SYNTAX_ERROR("Expected argument");
   }
 
-  while (!(*it)->isTypeOf(end))
+  while (!(*srcIt)->isTypeOf(end))
   {
-    analyzedTokens.push_back(*it);
+    analyzedTokens.push_back(*srcIt);
     analyzedTokens.back()->partOf = argToken;
-    ++it;
+    ++srcIt;
   }
-
-  return it;
 }
 
-template <typename Iterator>
-Iterator SemanticAnalyzer::omitTokens(Iterator it, std::vector<TokenType> types)
+void SemanticAnalyzer::omitTokens(std::vector<TokenType> types)
 {
-  while ((*it)->isTypeOf(types))
+  while (*srcIt != nullptr && (*srcIt)->isTypeOf(types))
   {
-    ++it;
+    ++srcIt;
   }
-  return it;
 }
 
-template <typename Iterator>
-Iterator SemanticAnalyzer::rewindIterator(Iterator it, std::vector<TokenType> types)
+void SemanticAnalyzer::rewindIterator(std::vector<TokenType> types)
 {
-  while (!(*it)->isTypeOf(types))
+  while (!(*srcIt)->isTypeOf(types))
   {
-    --it;
-    if (it == tokens.begin())
+    --srcIt;
+    if (srcIt == tokens.begin())
     {
-      return it;
+      return;
     }
   }
-
-  return ++it;
+  ++srcIt;
 }
 
 int SemanticAnalyzer::findLastAnalyzedTokenIndex(std::vector<TokenType> types)

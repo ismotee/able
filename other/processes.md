@@ -47,7 +47,9 @@ Now that there's identifiers and declarations, it is time to gather these into a
 
 ### Key phrases
 
-Key phrases such as "for" or "print" will be parsed the last. This means that calls for example can include the same words than phrases. However any declaratoin or assignment shouldn't be exactly the same as key phrase.
+Key phrases such as "for" or "print" will be parsed the last. This means that calls for example can include the same words than phrases. However any declaration or assignment shouldn't be exactly the same as key phrase. This check of course must done during the declaration and assignment stages.
+
+Key phrase detection needs some kind of pattern in which is then compared to syntax tokens.
 
 ## Semantic tree
 
