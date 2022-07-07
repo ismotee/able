@@ -40,6 +40,8 @@ enum class TokenType
   CALL,
   ARGUMENT,
 
+  PRINT,
+
   ENDL,
   END_OF_FILE,
 };
@@ -82,6 +84,8 @@ static std::unordered_map<std::string, TokenType> stringToTokenType{
     {"CALL", TokenType::CALL},
     {"ARGUMENT", TokenType::ARGUMENT},
 
+    {"PRINT", TokenType::PRINT},
+
     {"\n", TokenType::ENDL},
     {"", TokenType::END_OF_FILE},
 };
@@ -123,6 +127,8 @@ static std::unordered_map<TokenType, std::string> tokenTypeToString{
     {TokenType::EXPRESSION, "EXPRESSION"},
     {TokenType::CALL, "CALL"},
     {TokenType::ARGUMENT, "ARGUMENT"},
+
+    {TokenType::PRINT, "PRINT"},
 
     {TokenType::ENDL, "\n"},
     {TokenType::END_OF_FILE, ""}};
