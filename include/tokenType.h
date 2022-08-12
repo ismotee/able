@@ -41,6 +41,7 @@ enum class TokenType
   ARGUMENT,
 
   PRINT,
+  JOIN,
 
   ENDL,
   END_OF_FILE,
@@ -85,6 +86,7 @@ static std::unordered_map<std::string, TokenType> stringToTokenType{
     {"ARGUMENT", TokenType::ARGUMENT},
 
     {"PRINT", TokenType::PRINT},
+    {"JOIN", TokenType::JOIN},
 
     {"\n", TokenType::ENDL},
     {"", TokenType::END_OF_FILE},
@@ -129,6 +131,7 @@ static std::unordered_map<TokenType, std::string> tokenTypeToString{
     {TokenType::ARGUMENT, "ARGUMENT"},
 
     {TokenType::PRINT, "PRINT"},
+    {TokenType::JOIN, "JOIN"},
 
-    {TokenType::ENDL, "\n"},
-    {TokenType::END_OF_FILE, ""}};
+    {TokenType::ENDL, "ENDL"},
+    {TokenType::END_OF_FILE, "EOF"}};

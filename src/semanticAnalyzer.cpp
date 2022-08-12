@@ -1,6 +1,8 @@
 #include "semanticAnalyzer.h"
 #include "errors.h"
 #include <iostream>
+#include <utility>
+#include <unordered_map>
 
 void SemanticAnalyzer::analyze()
 {
@@ -12,7 +14,8 @@ void SemanticAnalyzer::analyze()
   gatherDefinitions();
   handleCalls();
   prepareTokens();
-  handleKeywords();
+  handleKeyPhrases();
+  finalize();
 }
 
 void SemanticAnalyzer::handleDefinitions()
@@ -61,7 +64,7 @@ void SemanticAnalyzer::handleCalls()
     {
     case TokenType::WORD:
     {
-      if ((*srcIt)->partOf == NULL)
+      if ((*srcIt)->partOf == NULL || (*srcIt)->partOf->isTypeOf({TokenType::EXPRESSION}))
       {
         searchIdentifier();
       }
@@ -78,7 +81,7 @@ void SemanticAnalyzer::handleCalls()
   }
 }
 
-void SemanticAnalyzer::handleKeywords()
+void SemanticAnalyzer::handleKeyPhrases()
 {
   srcIt = tokens.begin();
   while (srcIt != tokens.end())
@@ -89,7 +92,7 @@ void SemanticAnalyzer::handleKeywords()
     {
       if ((*srcIt)->partOf == nullptr)
       {
-        searchKeyPhrase();
+        createKeyPhrase();
       }
       else
       {
@@ -112,6 +115,13 @@ void SemanticAnalyzer::prepareTokens()
   token::linkTokens(tokens);
 }
 
+void SemanticAnalyzer::finalize()
+{
+  // do some error checking here
+
+  token::linkTokens(analyzedTokens);
+}
+
 void SemanticAnalyzer::createLink()
 {
   auto importToken = std::make_shared<Import>();
@@ -130,9 +140,15 @@ void SemanticAnalyzer::createDeclaration()
   if ((*srcIt)->partOf != NULL)
     return;
 
-  auto declareToken = std::make_shared<Declare>();
+  std::string literal;
+
+  for (; (*srcIt)->isTypeOf({TokenType::HASH}); ++srcIt)
+  {
+    literal += (*srcIt)->literal;
+  }
+
+  auto declareToken = std::make_shared<Declare>(literal);
   analyzedTokens.push_back(declareToken);
-  omitTokens({TokenType::HASH});
 
   createIdentifier(declareToken, {TokenType::ENDL, TokenType::END_OF_FILE});
   analyzedTokens.push_back(*srcIt);
@@ -220,7 +236,7 @@ void SemanticAnalyzer::createExpression(std::shared_ptr<Token> partOf, std::vect
 
   if ((*srcIt)->isTypeOf(end))
   {
-    throw SYNTAX_ERROR("Expected expression");
+    throw SYNTAX_ERROR("Unxpected end of line. Expected expression.");
   }
 
   while (!(*++srcIt)->isTypeOf(end))
@@ -287,9 +303,8 @@ void SemanticAnalyzer::searchIdentifier()
     callToken->relatedTo = definition;
     analyzedTokens.push_back(callToken);
 
-    for (auto definitionToken = definition->next; !definitionToken->isTypeOf({TokenType::ENDL, TokenType::END_OF_FILE});)
+    for (auto definitionToken = definition->next; !definitionToken->isTypeOf({TokenType::ENDL, TokenType::END_OF_FILE, TokenType::WITH});)
     {
-
       if (definitionToken->type == TokenType::PARAMETER)
       {
         auto paramToken = definitionToken;
@@ -318,14 +333,21 @@ void SemanticAnalyzer::searchIdentifier()
   return;
 }
 
-void SemanticAnalyzer::searchKeyPhrase()
+void SemanticAnalyzer::createKeyPhrase()
 {
-  // this one is tricky.
-  // First of all source needs to be compared to key phrases.
-  // After the match is found there should be some kind of argument harvesting.
-  // Lastly key phrase call will be created from the pregenerated keyphrase list.
-  // Every step here is somewhat complex.
+  std::string keyPhraseName = searchKeyPhrase();
+  if (keyPhraseName.length() == 0)
+  {
+    analyzedTokens.push_back(*srcIt);
+    return;
+  }
 
+  std::vector<Tokens> args = gatherKeyPhraseArgs(keyPhraseName);
+  addKeyPhrase(keyPhraseName, args);
+}
+
+std::string SemanticAnalyzer::searchKeyPhrase()
+{
   std::string phraseName;
 
   // find a key phrase from pre-generated definitions
@@ -334,13 +356,13 @@ void SemanticAnalyzer::searchKeyPhrase()
     // assuming that every keyphrase has at least one token
     auto curPToken = keyphrase.second.at(0);
     auto curSToken = (*srcIt);
-    // This is used as a indicator
+
     phraseName = keyphrase.first;
 
     while (curPToken != nullptr && curSToken != nullptr)
     {
-      // there's three cases in matching:
-      // 1) Tokens match. check next token.
+      // there's three cases in matching loop:
+      // 1) (Source and key phrase) tokens match. Check next token.
       // 2a) Key phrase has a parameter. Parameter is at the end of the phrase.
       //     If so, then it's a match.
       // 2b) Key phrase has a parameter. Parameter is at the middle of the phrase.
@@ -355,9 +377,8 @@ void SemanticAnalyzer::searchKeyPhrase()
       }
       else if (curPToken->type == TokenType::PARAMETER)
       {
-        // assuming parameter name to be exactly length of one token.
-        // this is merely a way to make this part of the code a way simpler.
-        curPToken = curPToken->next;
+        // assuming there's no named parameters in keyphrases.
+        // This is merely a way to make this part of the code a way simpler.
         curPToken = curPToken->next;
 
         if (curPToken == nullptr)
@@ -401,28 +422,23 @@ void SemanticAnalyzer::searchKeyPhrase()
     }
   }
 
-  // no match found. Add source token to processed tokens as is
-  // and let the error handling take of it later on.
-  if (phraseName.length() == 0)
-  {
-    analyzedTokens.push_back(*srcIt);
-    return;
-  }
+  return phraseName;
+}
 
-  // get arguments
-  auto keyphrase = keyphrases::builtinKeyPhrases[phraseName];
+std::vector<Tokens> SemanticAnalyzer::gatherKeyPhraseArgs(std::string keyPhraseName)
+{
+  // Gather key phrase call arguments. First Tokne will be the name token for parameter.
+
+  auto keyphrase = keyphrases::builtinKeyPhrases[keyPhraseName];
   auto pToken = keyphrase[0];
   auto sToken = (*srcIt);
   std::vector<Tokens> args;
-  Tokens paramNames = {};
 
   while (pToken != nullptr)
   {
     if (pToken->isTypeOf({TokenType::PARAMETER}))
     {
-      Tokens arg = {};
-      pToken = pToken->next;
-      paramNames.push_back(pToken);
+      Tokens arg = {pToken};
       pToken = pToken->next;
       std::shared_ptr<Token> endToken = pToken;
 
@@ -441,8 +457,12 @@ void SemanticAnalyzer::searchKeyPhrase()
           // at this point there should not need end of file or endl checks because
           // matching phrase is already found.
           arg.push_back(sToken);
-          sToken->next;
+          sToken = sToken->next;
         }
+      }
+      if (sToken->isTypeOf({TokenType::ENDL, TokenType::END_OF_FILE}))
+      {
+        arg.push_back(sToken);
       }
       args.push_back(arg);
     }
@@ -453,8 +473,12 @@ void SemanticAnalyzer::searchKeyPhrase()
     }
   }
 
-  // generate a key phrase call
-  auto cToken = keyphrases::builtinPhraseCalls[phraseName].at(0);
+  return args;
+}
+
+void SemanticAnalyzer::addKeyPhrase(std::string keyPhraseName, std::vector<Tokens> args)
+{
+  auto cToken = keyphrases::builtinPhraseCalls[keyPhraseName].at(0);
   u_int curArg = 0;
   u_int callLength = 0;
 
@@ -463,17 +487,18 @@ void SemanticAnalyzer::searchKeyPhrase()
     if (cToken->isTypeOf({TokenType::ARGUMENT}))
     {
       auto argToken = std::make_shared<Argument>();
+      argToken->relatedTo = args[curArg][0]; // first token in the list is the parameter token of whom this argument is related to
       auto exprToken = std::make_shared<Expression>(argToken);
       analyzedTokens.push_back(argToken);
       analyzedTokens.push_back(exprToken);
 
-      for (auto it = args[curArg].begin(); it != args[curArg].end(); ++it)
+      for (auto it = args[curArg].begin() + 1; it != args[curArg].end(); ++it)
       {
         (*it)->partOf = exprToken;
-        (*it)->relatedTo = paramNames[curArg];
         analyzedTokens.push_back(*it);
         ++callLength;
       }
+      ++curArg;
     }
     else
     {
@@ -487,7 +512,7 @@ void SemanticAnalyzer::searchKeyPhrase()
     }
   }
 
-  srcIt += callLength;
+  srcIt += callLength - 1;
   return;
 }
 

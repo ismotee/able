@@ -47,9 +47,13 @@ Now that there's identifiers and declarations, it is time to gather these into a
 
 ### Key phrases
 
-Key phrases such as "for" or "print" will be parsed the last. This means that calls for example can include the same words than phrases. However any declaration or assignment shouldn't be exactly the same as key phrase. This check of course must done during the declaration and assignment stages.
+Key phrases such as "join (x) with (y)" or "print" will be parsed the last. This means that calls for example can include the same words than phrases. However any declaration or assignment shouldn't be exactly the same as key phrase. This check of course must done during the declaration and assignment stages.
 
-Key phrase detection needs some kind of pattern in which is then compared to syntax tokens.
+Key phrase detection needs some kind of pattern in which is then compared to syntax tokens. Parameters in Key phrases are unnamed for making the code little bit simpler.
+
+### Operations
+
+Last phse is to compose arithmetic and logical opartions. Effectively this means +, -, *, / operations and comparisons such as ==, <, > ,!=, =>, =<. The code should recognize the right count order between these operations. Functions should be calculated first.
 
 ## Semantic tree
 
