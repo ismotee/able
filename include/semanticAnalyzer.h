@@ -2,6 +2,7 @@
 #include "token.h"
 #include "scope.h"
 #include "keyphrases.h"
+#include <unordered_map>
 
 class SemanticAnalyzer
 {
@@ -25,10 +26,12 @@ protected:
   void handleDefinitions();
   void gatherDefinitions();
   void handleCalls();
-  void handleKeywords();
+  void handleKeyPhrases();
   void prepareTokens();
+  void finalize();
 
   // sub-methods
+  void createKeyPhrase();
   void createLink();
   void createDeclaration();
   void createAssignment();
@@ -40,7 +43,9 @@ protected:
       std::shared_ptr<Token> paramToken,
       std::shared_ptr<Token> endToken);
   void searchIdentifier();
-  void searchKeyPhrase();
+  std::string searchKeyPhrase();
+  std::vector<Tokens> gatherKeyPhraseArgs(std::string keyPhraseName);
+  void addKeyPhrase(std::string keyPhraseName, std::vector<Tokens> args);
   void omitTokens(std::vector<TokenType> types);
   void rewindIterator(std::vector<TokenType> types);
   void removeLastAnalyzedLine();
