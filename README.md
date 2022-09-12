@@ -3,7 +3,7 @@
 Able is a programming language. It is meant to be read easily. The aim of the Able is to be readable with even for the people how otherwise are completely mundane to programming languages.
 
 ## Installation
-Not yet implemented. See [State of the development](#state-of-development)
+Not yet implemented. See [Status of development](#status-of-development)
 
 ## Main goals of the Able
 
@@ -20,7 +20,7 @@ Able aims:
 - to give a possibility to use natural language structure in definitions of the functions and variables
 - to be effective and expressive programming language without compromising the readability
 
-## State of development
+## Status of development
 
 Able is currently in inital stages of development. Able was originally written in golang but then is being pivoted to c++. There's not much of a working language yet altough there's some basic parsing ready. However there's no runtime environment so nothing will happen.
 
