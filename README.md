@@ -5,11 +5,11 @@ Able is a programming language. It is meant to be read easily. The aim of the Ab
 ## Installation
 Not yet implemented. See [Status of development](#status-of-development)
 
-## Main goals of the Able
+## Main goals
 
 The approach of the Able is to make as readeble language as possible. This means that writing a new code will be considerably slower than conventional programming languages. However reading code enables a completely new ways to do collaborative coding. Also logical errors are more exposed to a larger audience thus it is easier to prevent critical errors and bugs earlier in the development process.
 
-## Main ideas of the language
+## Main ideas
 
 The main ideas and concepts are mainly drawn from markup language [Markdown](https://en.wikipedia.org/wiki/Markdown). The aims of the Markdown and Able are very similar.
 
@@ -19,6 +19,8 @@ Able aims:
 - to Minimize the spacial characters from the source code
 - to give a possibility to use natural language structure in definitions of the functions and variables
 - to be effective and expressive programming language without compromising the readability
+
+There's some relation to awesome projects such as [LiaScript](https://liascript.github.io/)
 
 ## Status of development
 
