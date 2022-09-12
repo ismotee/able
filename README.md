@@ -16,7 +16,7 @@ The main ideas and concepts are mainly drawn from markup language [Markdown](htt
 Able aims:
 
 - to be [CommonMark](https://commonmark.org/) compliant
-- to Minimize the spacial characters from the source code
+- to have minimal use of special characters
 - to give a possibility to use natural language structure in definitions of the functions and variables
 - to be effective and expressive programming language without compromising the readability
 
