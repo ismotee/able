@@ -1,7 +1,6 @@
 # Able
 
-
-Able is a programming language. It is meant to be read easily. The aim of the Able is to be readable with even for the people how otherwise are completely mundane to programming languages. Able <3 clear language.
+Able is a programming language. It is meant to be read easily. The aim of the Able is to be readable with even for the people how otherwise are completely mundane to programming languages.
 
 ## Installation
 
