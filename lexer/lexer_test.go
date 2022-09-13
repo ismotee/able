@@ -2,345 +2,72 @@ package lexer
 
 import (
 	"able/token"
-	"fmt"
 	"testing"
 )
 
-// onelinereitä ei tällä hetkellä tueta muttei tarkastetakaan
-// # funktio = jotain
-// myös kaikki erikoismerkit kuten !=<> on sallittuja. Ei varmaan pitäis.. :D
-// Jatkossa ehkä tyyliin add (x) to (y) = x + y
-// oneliner syntaksina.
-
-// Scope on täysin testaamatta. Kirjoita testit
-
 func TestNextToken(t *testing.T) {
-	input := `# add (x) to (value y)
-	x + value y
-	value y - 12
-	# other function
- 	test = 2
-	true < false
-	if false > !true 
-	else test
-
-	12.33323 + 12
-	true == true
-	!=
-	add 1 to 10
-	1`
-
-	tests := []struct {
-		expectedType    token.TokenType
-		expectedLiteral string
-	}{
-		{token.DECLARE, "#"},
-		{token.IDENT, "add (x) to (value y)"},
-		{token.IDENT, "x"},
-		{token.IDENT, "value y"},
-		{token.DECL_END, ""},
-		{token.ENDL, "\n"},
-		{token.IDENT, "x"},
-		{token.PLUS, "+"},
-		{token.IDENT, "value y"},
-		{token.ENDL, "\n"},
-		{token.IDENT, "value y"},
-		{token.MINUS, "-"},
-		{token.NUMBER, "12"},
-		{token.ENDL, "\n"},
-		{token.DECLARE, "#"},
-		{token.IDENT, "other function"},
-		{token.DECL_END, ""},
-		{token.ENDL, "\n"},
-		{token.IDENT, "test"},
-		{token.ASSIGN, "="},
-		{token.NUMBER, "2"},
-		{token.ENDL, "\n"},
-		{token.TRUE, "true"},
-		{token.LT, "<"},
-		{token.FALSE, "false"},
-		{token.ENDL, "\n"},
-		{token.IF, "if"},
-		{token.FALSE, "false"},
-		{token.GT, ">"},
-		{token.BANG, "!"},
-		{token.TRUE, "true"},
-		{token.ENDL, "\n"},
-		{token.ELSE, "else"},
-		{token.IDENT, "test"},
-		{token.ENDL, "\n"},
-		{token.ENDL, "\n"},
-		{token.NUMBER, "12.33323"},
-		{token.PLUS, "+"},
-		{token.NUMBER, "12"},
-		{token.ENDL, "\n"},
-		{token.TRUE, "true"},
-		{token.EQ, "=="},
-		{token.TRUE, "true"},
-		{token.ENDL, "\n"},
-		{token.NOT_EQ, "!="},
-		{token.ENDL, "\n"},
-		{token.CALL, "add (x) to (value y)"},
-		{token.NUMBER, "1"},
-		{token.ARG_END, ""},
-		{token.NUMBER, "10"},
-		{token.CALL_END, ""},
-		{token.ENDL, "\n"},
-		{token.NUMBER, "1"},
-		{token.EOF, ""},
-	}
-
-	l := New(input, nil, nil)
-
-	for i, tt := range tests {
-		tok := l.NextToken()
-		fmt.Printf("current token in test: %s, %s\n", tok.Literal, tok.Type)
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("Test number %d: Token literal is not expected '%s', got='%s'", i, tt.expectedLiteral, tok.Literal)
-		}
-
-		if tok.Type != tt.expectedType {
-			t.Fatalf("Test number %d: Token '%s' is not expected type '%s', got=%s", i, tok.Literal, tt.expectedType, tok.Type)
-		}
-	}
-}
-
-func TestNextTokenDeclaration(t *testing.T) {
-	input := `add 1 to 10
+	input := `print hello.
 	
-	# add (x) to (value y)
-	= value y + x`
+	hello is "Hello, World!".
+	+-*/()1233. 123.123. 123hello.
+	== = !=.
+	return.`
+
+	// already calls findStatementAssignments
+	l := New(input)
 
 	tests := []struct {
-		expectedType    token.TokenType
-		expectedLiteral string
+		expType     token.TokenType
+		expLiteral  string
+		expPosition token.TokenPosition
 	}{
-		{token.CALL, "add (x) to (value y)"},
-		{token.NUMBER, "1"},
-		{token.ARG_END, ""},
-		{token.NUMBER, "10"},
-		{token.CALL_END, ""},
-		{token.ENDL, "\n"},
-		{token.ENDL, "\n"},
-		{token.DECLARE, "#"},
-		{token.IDENT, "add (x) to (value y)"},
-		{token.IDENT, "x"},
-		{token.IDENT, "value y"},
-		{token.DECL_END, ""},
-		{token.ENDL, "\n"},
-		{token.RETURN, "="},
-		{token.IDENT, "value y"},
-		{token.PLUS, "+"},
-		{token.IDENT, "x"},
-		{token.EOF, ""},
+		{token.PRINT, "print", token.TokenPosition{Line: 1, Char: 1, Length: 5}},
+		{token.IDENT, "hello", token.TokenPosition{Line: 1, Char: 7, Length: 5}},
+		{token.DOT, ".", token.TokenPosition{Line: 1, Char: 12, Length: 1}},
+		{token.NEW_PARAGRAPH, "\n\n", token.TokenPosition{Line: 1, Char: 13, Length: 2}},
+		{token.IDENT, "hello", token.TokenPosition{Line: 3, Char: 1, Length: 5}},
+		{token.IS, "is", token.TokenPosition{Line: 3, Char: 7, Length: 2}},
+		{token.STRING, "Hello, World!", token.TokenPosition{Line: 3, Char: 11, Length: 13}},
+		{token.DOT, ".", token.TokenPosition{Line: 3, Char: 25, Length: 1}},
+		{token.NEW_LINE, "\n", token.TokenPosition{Line: 3, Char: 26, Length: 1}},
+		{token.PLUS, "+", token.TokenPosition{Line: 4, Char: 1, Length: 1}},
+		{token.MINUS, "-", token.TokenPosition{Line: 4, Char: 2, Length: 1}},
+		{token.ASTERISK, "*", token.TokenPosition{Line: 4, Char: 3, Length: 1}},
+		{token.SLASH, "/", token.TokenPosition{Line: 4, Char: 4, Length: 1}},
+		{token.LPAREN, "(", token.TokenPosition{Line: 4, Char: 5, Length: 1}},
+		{token.RPAREN, ")", token.TokenPosition{Line: 4, Char: 6, Length: 1}},
+		{token.NUMBER, "1233", token.TokenPosition{Line: 4, Char: 7, Length: 4}},
+		{token.DOT, ".", token.TokenPosition{Line: 4, Char: 11, Length: 1}},
+		{token.NUMBER, "123.123", token.TokenPosition{Line: 4, Char: 13, Length: 7}},
+		{token.DOT, ".", token.TokenPosition{Line: 4, Char: 20, Length: 1}},
+		{token.NUMBER, "123", token.TokenPosition{Line: 4, Char: 22, Length: 3}},
+		{token.IDENT, "hello", token.TokenPosition{Line: 4, Char: 25, Length: 5}},
+		{token.DOT, ".", token.TokenPosition{Line: 4, Char: 30, Length: 1}},
+		{token.NEW_LINE, "\n", token.TokenPosition{Line: 4, Char: 31, Length: 1}},
+		{token.EQ, "==", token.TokenPosition{Line: 5, Char: 1, Length: 2}},
+		{token.IS, "=", token.TokenPosition{Line: 5, Char: 4, Length: 1}},
+		{token.NOT_EQ, "!=", token.TokenPosition{Line: 5, Char: 6, Length: 2}},
+		{token.DOT, ".", token.TokenPosition{Line: 5, Char: 8, Length: 1}},
+		{token.NEW_LINE, "\n", token.TokenPosition{Line: 5, Char: 9, Length: 1}},
+		{token.RETURN, "return", token.TokenPosition{Line: 6, Char: 1, Length: 6}},
+		{token.DOT, ".", token.TokenPosition{Line: 6, Char: 7, Length: 1}},
+		{token.EOF, "", token.TokenPosition{Line: 6, Char: 8, Length: 0}},
 	}
-
-	l := New(input, nil, nil)
 
 	for i, tt := range tests {
 		tok := l.NextToken()
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("Test number %d: Token literal is not expected '%s', got='%s'", i, tt.expectedLiteral, tok.Literal)
+
+		if tok.Type != tt.expType {
+			t.Fatalf("tests[%d]: Token type wrong. expected: %q\n got: %q\n literal token: %q", i, tt.expType, tok.Type, tok.Literal)
 		}
 
-		if tok.Type != tt.expectedType {
-			t.Fatalf("Test number %d: Token '%s' is not expected type '%s', got=%s", i, tok.Literal, tt.expectedType, tok.Type)
-		}
-	}
-}
-
-func TestNextTokenDeclarationWithArgumentFirst(t *testing.T) {
-	input := `3 apples
-	
-	# (x) apples
-	= x - 1`
-
-	tests := []struct {
-		expectedType    token.TokenType
-		expectedLiteral string
-	}{
-		{token.CALL, "(x) apples"},
-		{token.NUMBER, "3"},
-		{token.CALL_END, ""},
-		{token.ENDL, "\n"},
-		{token.ENDL, "\n"},
-		{token.DECLARE, "#"},
-		{token.IDENT, "(x) apples"},
-		{token.IDENT, "x"},
-		{token.DECL_END, ""},
-		{token.ENDL, "\n"},
-		{token.RETURN, "="},
-		{token.IDENT, "x"},
-		{token.MINUS, "-"},
-		{token.NUMBER, "1"},
-		{token.EOF, ""},
-	}
-
-	l := New(input, nil, nil)
-	for i, tt := range tests {
-		tok := l.NextToken()
-		fmt.Printf("current token in test: %s, %s\n", tok.Literal, tok.Type)
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("Test number %d: Token literal is not expected '%s', got='%s'", i, tt.expectedLiteral, tok.Literal)
+		if tok.Literal != tt.expLiteral {
+			t.Fatalf("tests[%d]: Token literal wrong. expected %q\n got: %q\n", i, tt.expLiteral, tok.Literal)
 		}
 
-		if tok.Type != tt.expectedType {
-			t.Fatalf("Test number %d: Token '%s' is not expected type '%s', got=%s", i, tok.Literal, tt.expectedType, tok.Type)
-		}
-	}
-
-}
-
-func TestNextTokenString(t *testing.T) {
-	input := `"foobar"
-	"some longer text"
-	"longer text (with parentheses)"`
-
-	tests := []struct {
-		expectedType    token.TokenType
-		expectedLiteral string
-	}{
-		{token.STRING, "foobar"},
-		{token.ENDL, "\n"},
-		{token.STRING, "some longer text"},
-		{token.ENDL, "\n"},
-		{token.STRING, "longer text (with parentheses)"},
-		{token.EOF, ""},
-	}
-
-	l := New(input, nil, nil)
-
-	for i, tt := range tests {
-		tok := l.NextToken()
-		fmt.Printf("current token in test: %s, %s\n", tok.Literal, tok.Type)
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("Test number %d: Token literal is not expected '%s', got='%s'", i, tt.expectedLiteral, tok.Literal)
+		if tok.Position.Line != tt.expPosition.Line || tok.Position.Char != tt.expPosition.Char || tok.Position.Length != tt.expPosition.Length {
+			t.Fatalf("tests[%d]: position details wrong for %q .\n expected: %v\n got: %v\n", i, tok.Literal, tt.expPosition, tok.Position)
 		}
 
-		if tok.Type != tt.expectedType {
-			t.Fatalf("Test number %d: Token '%s' is not expected type '%s', got=%s", i, tok.Literal, tt.expectedType, tok.Type)
-		}
-	}
-}
-
-func TestColonAssignment(t *testing.T) {
-	input := `todo:
-	123`
-
-	tests := []struct {
-		expectedType    token.TokenType
-		expectedLiteral string
-	}{
-		{token.IDENT, "todo"},
-		{token.ASSIGN, ":"},
-		{token.ENDL, "\n"},
-		{token.NUMBER, "123"},
-		{token.EOF, ""},
-	}
-
-	l := New(input, nil, nil)
-
-	for i, tt := range tests {
-		tok := l.NextToken()
-		fmt.Printf("current token in test: %s, %s\n", tok.Literal, tok.Type)
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("Test number %d: Token literal is not expected '%s', got='%s'", i, tt.expectedLiteral, tok.Literal)
-		}
-
-		if tok.Type != tt.expectedType {
-			t.Fatalf("Test number %d: Token '%s' is not expected type '%s', got=%s", i, tok.Literal, tt.expectedType, tok.Type)
-		}
-	}
-}
-
-func TestList(t *testing.T) {
-	input := `* 123
-	* "foobar"`
-
-	tests := []struct {
-		expectedType    token.TokenType
-		expectedLiteral string
-	}{
-		{token.ASTERISK, "*"},
-		{token.NUMBER, "123"},
-		{token.ENDL, "\n"},
-		{token.ASTERISK, "*"},
-		{token.STRING, "foobar"},
-	}
-
-	l := New(input, nil, nil)
-
-	for i, tt := range tests {
-		tok := l.NextToken()
-		fmt.Printf("current token in test: %s, %s\n", tok.Literal, tok.Type)
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("Test number %d: Token literal is not expected '%s', got='%s'", i, tt.expectedLiteral, tok.Literal)
-		}
-
-		if tok.Type != tt.expectedType {
-			t.Fatalf("Test number %d: Token '%s' is not expected type '%s', got=%s", i, tok.Literal, tt.expectedType, tok.Type)
-		}
-	}
-}
-
-func TestScope(t *testing.T) {
-	input := `get barbar from bar
-	barbar
-	# foo
-	= 2
-	
-	# bar
-	= foo
-	## barbar
-	= 3`
-
-	tests := []struct {
-		expectedType    token.TokenType
-		expectedLiteral string
-	}{
-		{token.GET, "get"},
-		{token.IDENT, "barbar"},
-		{token.FROM, "from"},
-		{token.IDENT, "bar"},
-		{token.ENDL, "\n"},
-		{token.CALL, "barbar"},
-		{token.DECLARE, "#"},
-		{token.IDENT, "foo"},
-		{token.DECL_END, ""},
-		{token.ENDL, "\n"},
-		{token.RETURN, "="},
-		{token.NUMBER, "2"},
-		{token.ENDL, "\n"},
-		{token.ENDL, "\n"},
-		{token.DECLARE, "#"},
-		{token.IDENT, "bar"},
-		{token.DECL_END, ""},
-		{token.ENDL, "\n"},
-		{token.RETURN, "="},
-		{token.CALL, "foo"},
-		{token.CALL_END, ""},
-		{token.ENDL, "\n"},
-		{token.DECLARE, "#"},
-		{token.DECLARE, "#"},
-		{token.IDENT, "barbar"},
-		{token.DECL_END, ""},
-		{token.ENDL, "\n"},
-		{token.RETURN, "="},
-		{token.NUMBER, "3"},
-		{token.EOF, ""},
-	}
-
-	l := New(input, nil, nil)
-
-	for i, tt := range tests {
-		tok := l.NextToken()
-		fmt.Printf("current token in test: %s, %s\n", tok.Literal, tok.Type)
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("Test number %d: Token literal is not expected '%s', got='%s'", i, tt.expectedLiteral, tok.Literal)
-		}
-
-		if tok.Type != tt.expectedType {
-			t.Fatalf("Test number %d: Token '%s' is not expected type '%s', got=%s", i, tok.Literal, tt.expectedType, tok.Type)
-		}
 	}
 }
