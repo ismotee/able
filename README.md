@@ -7,7 +7,7 @@ Not yet implemented. See [Status of development](#status-of-development)
 
 ## Main goals
 
-The approach of the Able is to make as readeble language as possible. This means that writing a new code will be considerably slower than conventional programming languages. However reading code enables a completely new ways to do collaborative coding. Also logical errors are more exposed to a larger audience thus it is easier to prevent critical errors and bugs earlier in the development process.
+The approach of the Able is to make as readable language as possible. This means that writing a new code will be considerably slower than conventional programming languages. However reading code enables a completely new ways to do collaborative coding. Also logical errors are more exposed to a larger audience thus it is easier to prevent critical errors and bugs earlier in the development process.
 
 ## Main ideas
 
