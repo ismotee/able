@@ -5,8 +5,7 @@
 #include "token.h"
 #include "tokenType.h" 
 
-enum class ExprOrder
-{
+enum class ExprOrder {
   LOWEST = 0,
   EQUALS,
   LESSGREATER,
@@ -43,14 +42,14 @@ typedef std::shared_ptr<Param> pParam;
 typedef std::vector<pParam> Params;
 
 static std::string trimTrailingWhiteSpace(std::string str) {
-    while(str.size() > 0 && str[str.size() -1] == ' ') {
-      str.pop_back();
-    }
-    return str;
+  while (str.size() > 0 && str[str.size() - 1] == ' ') {
+    str.pop_back();
+  }
+  return str;
 }
 
 struct Param: public AstNode {
-  Param(Tokens t = {}) : tokens(t) {}
+  Param(Tokens t = {}): tokens(t) {}
 
   Tokens tokens;
 
@@ -61,7 +60,7 @@ struct Param: public AstNode {
   std::string toString() {
     std::string res = "(";
 
-    for(auto token : tokens) {
+    for (auto token : tokens) {
       res += token->literal;
       res += " ";
     }
@@ -81,30 +80,30 @@ struct Phrase {
 
   inline bool operator==(const Tokens& t) {
     auto cur = tokens.begin();
-    for(auto it = t.begin(); it != t.end();) {
+    for (auto it = t.begin(); it != t.end();) {
       // if phrase ends before comparison tokens
-      if(cur == tokens.end()) return false;
+      if (cur == tokens.end()) return false;
 
       // if tokens match
-      if(*cur == *it) {
+      if (*cur == *it) {
         ++it;
         ++cur;
         continue;
       }
 
       // if there's a parameter
-      if((*cur)->isTypeOf(TokenType::PARAMETER)) {
+      if ((*cur)->isTypeOf(TokenType::PARAMETER)) {
         ++cur;
 
         // if parameter is at the end of the phrase
-        if(cur == tokens.end()) return true;
+        if (cur == tokens.end()) return true;
 
         // fast-forward parameter to a next matching token
-        for(;(*it) != (*cur);) {
+        for (;(*it) != (*cur);) {
           ++it;
 
           // if comparison tokens end before finding a matching token
-          if(it == t.end()) {
+          if (it == t.end()) {
             return false;
           }
         }
@@ -117,8 +116,8 @@ struct Phrase {
     std::string res;
     u_int i_param = 0;
 
-    for(auto token : tokens) {
-      if(token->isTypeOf(TokenType::PARAMETER)) {
+    for (auto token : tokens) {
+      if (token->isTypeOf(TokenType::PARAMETER)) {
         res += params[i_param]->toString();
         ++i_param;
       } else {
@@ -150,14 +149,14 @@ struct Block: public AstNode {
 
     res += intend();
     res += "{";
-    if(tokens.size() > 0) res += "\n";
-    
-    for(pAstNode token : tokens) {
+    if (tokens.size() > 0) res += "\n";
+
+    for (pAstNode token : tokens) {
       res += intend(true);
       res += token->toString();
     }
 
-    if(tokens.size() > 0) res += intend();
+    if (tokens.size() > 0) res += intend();
     res += "}\n";
 
     return res;
@@ -171,11 +170,11 @@ struct Block: public AstNode {
     std::string res;
     u_int limit = depth;
 
-    if(isInside) {
+    if (isInside) {
       ++limit;
     }
 
-    for(u_int i = 0; i < limit; ++i) {
+    for (u_int i = 0; i < limit; ++i) {
       res += "  ";
     }
 
@@ -188,15 +187,14 @@ struct Block: public AstNode {
 };
 
 struct Scope: public AstNode {
-  Scope(pScope _broader = nullptr, pPhrase i = nullptr): 
+  Scope(pScope _broader = nullptr, pPhrase i = nullptr):
     block(Block::New()),
-    identifier(i)
-    {
-      setBroaderScope(_broader);
-    }
+    identifier(i) {
+    setBroaderScope(_broader);
+  }
 
-  pPhrase identifier;
   pBlock block;
+  pPhrase identifier;
   pScope broader;
   Scopes narrower;
 
@@ -209,19 +207,18 @@ struct Scope: public AstNode {
   }
 
   void setBroaderScope(pScope _broader) {
-      broader = _broader;
-      if(broader != nullptr) {
-        block->setDepth(broader->getDepth() + 1);
-      } else {
-        block->setDepth(0);
-      }
+    broader = _broader;
+    if (broader != nullptr) {
+      block->setDepth(broader->getDepth() + 1);
+    } else {
+      block->setDepth(0);
+    }
   }
 
   std::string toString() {
     std::string res;
-    if(identifier != nullptr) 
-    {
-      for(u_int i = 0; i < getDepth(); ++i) res += "#";
+    if (identifier != nullptr) {
+      for (u_int i = 0; i < getDepth(); ++i) res += "#";
       res += " " + identifier->toString();
     }
 
@@ -236,12 +233,10 @@ struct Scope: public AstNode {
 
 
 
-class Parser
-{
+class Parser {
 public:
-  Parser(Tokens t = {}, pScope _scope = nullptr) : tokens(t), scope(_scope)
-  {
-    if(scope == nullptr) {
+  Parser(Tokens t = {}, pScope _scope = nullptr): tokens(t), scope(_scope) {
+    if (scope == nullptr) {
       scope = Scope::New();
       cur = tokens.begin();
       prev = tokens.end();
@@ -255,7 +250,7 @@ public:
 
   void setPosition(u_int pos) {
     cur = tokens.begin() + pos;
-    if(pos == 0) {
+    if (pos == 0) {
       prev = tokens.end();
     } else {
       prev = cur - 1;
@@ -285,19 +280,15 @@ protected:
   void buildBlock();
   void buildDefinition();
   pPhrase buildPhrase();
-  bool isPhrase() {return false;}
-  bool isKeyPhrase() {return false;}
+  bool isPhrase() { return false; }
+  bool isKeyPhrase() { return false; }
   ExprOrder curPrecedence();
   ExprOrder peekPrecedence();
 
 private:
   void next() {
-    try {
-      prev = cur;
-      ++cur;
-    } catch (std::exception e) {
-      throw e;
-    }
+    prev = cur;
+    cur = std::next(cur);
   }
 
   Tokens::iterator cur;
