@@ -4,17 +4,14 @@
 #include "keyphrases.h"
 #include <unordered_map>
 
-class SemanticAnalyzer
-{
+class SemanticAnalyzer {
 public:
   SemanticAnalyzer() {}
-  SemanticAnalyzer(Tokens t) : tokens(t)
-  {
+  SemanticAnalyzer(Tokens t): tokens(t) {
     analyze();
   }
 
   void analyze();
-  std::string verboseTokens();
 
   Tokens tokens;
   Tokens analyzedTokens;
@@ -39,9 +36,9 @@ protected:
   void createParameter(std::shared_ptr<Token> identifier);
   void createExpression(std::shared_ptr<Token> partOf, std::vector<TokenType> end);
   void createArgument(
-      std::shared_ptr<Token> callToken,
-      std::shared_ptr<Token> paramToken,
-      std::shared_ptr<Token> endToken);
+    std::shared_ptr<Token> callToken,
+    std::shared_ptr<Token> paramToken,
+    std::shared_ptr<Token> endToken);
   void searchIdentifier();
   std::string searchKeyPhrase();
   std::vector<Tokens> gatherKeyPhraseArgs(std::string keyPhraseName);

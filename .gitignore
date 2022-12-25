@@ -1,2 +1,5 @@
-obj
-testObj
+obj/
+testObj/
+able
+test
+.vscode/

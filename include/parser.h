@@ -280,7 +280,7 @@ protected:
   void buildBlock();
   void buildDefinition();
   pPhrase buildPhrase();
-  bool isPhrase() { return false; }
+  bool isPhrase();
   bool isKeyPhrase() { return false; }
   ExprOrder curPrecedence();
   ExprOrder peekPrecedence();

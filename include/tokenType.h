@@ -1,8 +1,7 @@
 #pragma once
 #include <unordered_map>
 
-enum class TokenType
-{
+enum class TokenType {
   UNDEFINED,
 
   MINUS,
@@ -29,6 +28,7 @@ enum class TokenType
   GT_OR_EQUALS,
   LT_OR_EQUALS,
 
+  PRE_TOKEN,
   IMPORT,
   FROM,
   DECLARE,
@@ -39,6 +39,7 @@ enum class TokenType
   EXPRESSION,
   CALL,
   ARGUMENT,
+  BLOCK,
 
   PRINT,
   JOIN,
@@ -74,6 +75,7 @@ static std::unordered_map<std::string, TokenType> stringToTokenType{
     {">=", TokenType::GT_OR_EQUALS},
     {"<=", TokenType::LT_OR_EQUALS},
 
+    {"PRE_TOKEN", TokenType::PRE_TOKEN},
     {"IMPORT", TokenType::IMPORT},
     {"FROM", TokenType::FROM},
     {"DECLARE", TokenType::DECLARE},
@@ -84,6 +86,7 @@ static std::unordered_map<std::string, TokenType> stringToTokenType{
     {"EXPRESSION", TokenType::EXPRESSION},
     {"CALL", TokenType::CALL},
     {"ARGUMENT", TokenType::ARGUMENT},
+    {"BLOCK", TokenType::BLOCK},
 
     {"PRINT", TokenType::PRINT},
     {"JOIN", TokenType::JOIN},
@@ -119,6 +122,7 @@ static std::unordered_map<TokenType, std::string> tokenTypeToString{
     {TokenType::GT_OR_EQUALS, ">="},
     {TokenType::LT_OR_EQUALS, "<="},
 
+    {TokenType::PRE_TOKEN, "PRE_TOKEN"},
     {TokenType::IMPORT, "IMPORT"},
     {TokenType::FROM, "FROM"},
     {TokenType::DECLARE, "DECLARE"},
@@ -129,9 +133,10 @@ static std::unordered_map<TokenType, std::string> tokenTypeToString{
     {TokenType::EXPRESSION, "EXPRESSION"},
     {TokenType::CALL, "CALL"},
     {TokenType::ARGUMENT, "ARGUMENT"},
+    {TokenType::BLOCK, "BLOCK"},
 
     {TokenType::PRINT, "PRINT"},
     {TokenType::JOIN, "JOIN"},
 
-    {TokenType::ENDL, "ENDL"},
-    {TokenType::END_OF_FILE, "EOF"}};
+    {TokenType::ENDL, "\n"},
+    {TokenType::END_OF_FILE, "EOF"} };

@@ -41,17 +41,17 @@ void Parser::buildBlock() {
 }
 
 void Parser::parseStatement() {
-  if (isPhrase()) {
-    parseCall();
-    return;
-  }
-
   if (isKeyPhrase()) {
     parseKeyPhraseCall();
     return;
   }
 
   switch ((*cur)->type) {
+    case TokenType::CALL:
+    {
+      parseCall();
+      return;
+    }
     //    case TokenType::RETURN: {}
     default:
       parseExpressionStatement();
@@ -60,7 +60,7 @@ void Parser::parseStatement() {
 }
 
 void Parser::parseCall() {
-
+  std::cout << "here\n";
 }
 
 void Parser::parseExpressionStatement() {
@@ -146,7 +146,7 @@ pPhrase Parser::buildPhrase() {
   pPhrase phrase = Phrase::New();
   for (; cur != tokens.end() && !(*cur)->isTypeOf({ TokenType::ENDL, TokenType::END_OF_FILE }); next()) {
     if ((*cur)->isTypeOf(TokenType::LBRACE)) {
-      phrase->tokens.push_back(std::make_shared<Parameter>());
+      // phrase->tokens.push_back(std::make_shared<AstParameter>());
       pParam param = Param::New();
       for (next(); !(*cur)->isTypeOf(TokenType::RBRACE); next()) {
         param->tokens.push_back(*cur);
@@ -160,6 +160,7 @@ pPhrase Parser::buildPhrase() {
 
   return phrase;
 }
+
 
 ExprOrder Parser::curPrecedence() {
   try {

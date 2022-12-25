@@ -52,5 +52,6 @@
     "cinttypes": "cpp",
     "typeinfo": "cpp",
     "variant": "cpp"
-  }
+  },
+  "go.toolsEnvVars": {}
 }

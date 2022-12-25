@@ -1,11 +1,11 @@
 #pragma once
+#include <iostream>
 #include "token.h"
 
-class Lexer
-{
+class Lexer {
 public:
   Lexer() {}
-  Lexer(std::string src) : source(src) {}
+  Lexer(std::string src): source(src) {}
   void generateTokens();
   void addToken();
   void addWordToken();

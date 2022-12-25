@@ -1,38 +1,41 @@
 #include <gmock/gmock.h>
 #include "lexer.h"
+#include "preparser.h"
 #include "parser.h"
+#include "errors.h"
 
 using namespace ::testing;
 
-class ParserTest : public Test
-{
+class ParserTest: public Test {
 public:
   ParserTest() {}
 
-  void prepareSrc(std::string src, bool verbose)
-  {
+  void prepareSrc(std::string src, bool verbose) {
+    if (verbose) std::cout << "running lexer\n";
     Lexer l = Lexer(src);
-    l.generateTokens();
+    EXPECT_NO_THROW(l.generateTokens());
+    if (verbose) std::cout << "running preParser\n";
+    PreParser prep = PreParser(l.tokens);
+    EXPECT_NO_THROW(l.generateTokens());
+    if (verbose) std::cout << "running parser\n";
     p = Parser(l.tokens);
-    p.parse();
+    EXPECT_NO_THROW(p.parse());
+    if (verbose) std::cout << "done!\n";
   }
 
-  void compareSourceAndParserString(std::string src, std::string expected, bool verbose = false)
-  {
-    if (verbose)
-    {
+  void compareSourceAndParserString(std::string src, std::string expected, bool verbose = false) {
+    if (verbose) {
       std::cout << "testing:\n"
-                << src << "\n\n";
+        << src << "\n\n";
       std::cout << "expected:\n"
-                << expected << "\n";
+        << expected << "\n";
     }
 
     prepareSrc(src, verbose);
 
-    if (verbose)
-    {
+    if (verbose) {
       std::cout << "result:\n"
-                << p.toString();
+        << p.toString();
     }
 
     EXPECT_EQ(expected, p.toString());
@@ -52,74 +55,74 @@ TEST_F(ParserTest, EmptySource) {
 TEST_F(ParserTest, EmptyDefinition) {
   std::string src = "# test";
   std::string expected = "{\n"
-                         "  # test\n"
-                         "  {}\n"
-                         "}\n";
+    "  # test\n"
+    "  {}\n"
+    "}\n";
 
   compareSourceAndParserString(src, expected);
 }
 
 TEST_F(ParserTest, NestedDefinitions) {
   std::string src = "# test\n"
-                    "## too test\n"
-                    "### deep test\n"
-                    "## three test";
+    "## too test\n"
+    "### deep test\n"
+    "## three test";
   std::string expected = "{\n"
-                         "  # test\n"
-                         "  {\n"
-                         "    ## too test\n"
-                         "    {\n"
-                         "      ### deep test\n"
-                         "      {}\n"
-                         "    }\n"
-                         "    ## three test\n"
-                         "    {}\n"
-                         "  }\n"
-                         "}\n";
+    "  # test\n"
+    "  {\n"
+    "    ## too test\n"
+    "    {\n"
+    "      ### deep test\n"
+    "      {}\n"
+    "    }\n"
+    "    ## three test\n"
+    "    {}\n"
+    "  }\n"
+    "}\n";
 
   compareSourceAndParserString(src, expected);
 }
 
 TEST_F(ParserTest, DefinitionWithParameter) {
   std::string src = "# test (foo)\n"
-                    "# (foo bar) test\n"
-                    "# (foo) test (bar) test (baz) test (doodle doo)";
+    "# (foo bar) test\n"
+    "# (foo) test (bar) test (baz) test (doodle doo)";
   std::string expected = "{\n"
-                         "  # test (foo)\n"
-                         "  {}\n"
-                         "  # (foo bar) test\n"
-                         "  {}\n"
-                         "  # (foo) test (bar) test (baz) test (doodle doo)\n"
-                         "  {}\n"
-                         "}\n";
+    "  # test (foo)\n"
+    "  {}\n"
+    "  # (foo bar) test\n"
+    "  {}\n"
+    "  # (foo) test (bar) test (baz) test (doodle doo)\n"
+    "  {}\n"
+    "}\n";
 
   compareSourceAndParserString(src, expected);
 }
 
 TEST_F(ParserTest, SimpleExpressionsAndPrefixes) {
   std::string src = "5\n"
-                    "-1\n"
-                    "!3.5";
+    "-1\n"
+    "!3.5";
   std::string expected = "{\n"
-                         "  5\n"
-                         "  (-1)\n"
-                         "  (!3.5)\n"
-                         "}\n";
+    "  5\n"
+    "  (-1)\n"
+    "  (!3.5)\n"
+    "}\n";
 
   compareSourceAndParserString(src, expected);
 }
 
 TEST_F(ParserTest, InfixExpressions) {
   std::string src = "5 + 1\n"
-                    "6 - 1\n"
-                    "3 * 3\n"
-                    "4 / 4";
+    "6 - 1\n"
+    "3 * 3\n"
+    "4 / 4";
   std::string expected = "{\n"
-                         "  (5 + 1)\n"
-                         "  (6 - 1)\n"
-                         "  (3 * 3)\n"
-                         "  (4 / 4)\n"
-                         "}\n";
+    "  (5 + 1)\n"
+    "  (6 - 1)\n"
+    "  (3 * 3)\n"
+    "  (4 / 4)\n"
+    "}\n";
 
   compareSourceAndParserString(src, expected);
 }
@@ -127,40 +130,47 @@ TEST_F(ParserTest, InfixExpressions) {
 TEST_F(ParserTest, Precedence) {
   std::string src = "5 + 1 * -5 - 2 / 3";
   std::string expected = "{\n"
-                         "  ((5 + (1 * (-5))) - (2 / 3))\n"
-                         "}\n";
+    "  ((5 + (1 * (-5))) - (2 / 3))\n"
+    "}\n";
 
   compareSourceAndParserString(src, expected);
 }
 
 
-/*
-TEST_F(ParserTest, prefixes)
-{
+TEST_F(ParserTest, prefixes) {
   std::string src = "-2\n"
-                    "4 + 5\n"
-                    "2 + 3 * 5.2\n"
-                    "-2 - 5\n"
-                    "2 / -2\n"
-                    "!5";
-  std::string expectedStr = "(-2)\n"
-                            "(4 + 5)\n"
-                            "(2 + (3 * 5.2))\n"
-                            "((-2) - 5)\n"
-                            "(2 / (-2))\n"
-                            "(!5)\n";
-  compareSourceAndAstString(src, expectedStr);
+    "4 + 5\n"
+    "2 + 3 * 5.2\n"
+    "-2 - 5\n"
+    "2 / -2\n"
+    "!5";
+  std::string expectedStr = "{\n"
+    "  (-2)\n"
+    "  (4 + 5)\n"
+    "  (2 + (3 * 5.2))\n"
+    "  ((-2) - 5)\n"
+    "  (2 / (-2))\n"
+    "  (!5)\n"
+    "}\n";
+  compareSourceAndParserString(src, expectedStr);
 }
 
-TEST_F(ParserTest, definitionsAndCalls)
-{
-  std::string src = "test\n"
-                    "# test";
-  std::string expectedStr = "{test}\n"
-                            "# test() {\n"
-                            "}\n";
-  compareSourceAndAstString(src, expectedStr);
+TEST_F(ParserTest, definitionsAndCalls) {
+  try {
+    std::string src = "test\n"
+      "# test";
+    std::string expectedStr = "{\n"
+      "  {test}\n"
+      "  # test() {\n"
+      "  }\n"
+      "}\n";
+    compareSourceAndParserString(src, expectedStr, true);
+  } catch (SYNTAX_ERROR& e) {
+    std::cerr << e.what() << "\n";
+  }
 }
+
+/*
 
 TEST_F(ParserTest, definitionsAndCallsWithParams)
 {
