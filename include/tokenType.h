@@ -1,7 +1,8 @@
 #pragma once
 #include <unordered_map>
 
-enum class TokenType {
+enum class TokenType
+{
   UNDEFINED,
 
   MINUS,
@@ -32,7 +33,8 @@ enum class TokenType {
   IMPORT,
   FROM,
   DECLARE,
-  ASSIGN,
+  ASSIGNMENT,
+  EXPRESSION_STATEMENT,
   WITH,
   IDENTIFIER,
   PARAMETER,
@@ -40,6 +42,7 @@ enum class TokenType {
   CALL,
   ARGUMENT,
   BLOCK,
+  SCOPE,
 
   PRINT,
   JOIN,
@@ -79,7 +82,8 @@ static std::unordered_map<std::string, TokenType> stringToTokenType{
     {"IMPORT", TokenType::IMPORT},
     {"FROM", TokenType::FROM},
     {"DECLARE", TokenType::DECLARE},
-    {"ASSIGN", TokenType::ASSIGN},
+    {"ASSIGNMENT", TokenType::ASSIGNMENT},
+    {"EXPRESSION_STATEMENT", TokenType::EXPRESSION_STATEMENT},
     {"WITH", TokenType::WITH},
     {"IDENTIFIER", TokenType::IDENTIFIER},
     {"PARAMETER", TokenType::PARAMETER},
@@ -87,6 +91,7 @@ static std::unordered_map<std::string, TokenType> stringToTokenType{
     {"CALL", TokenType::CALL},
     {"ARGUMENT", TokenType::ARGUMENT},
     {"BLOCK", TokenType::BLOCK},
+    {"SCOPE", TokenType::SCOPE},
 
     {"PRINT", TokenType::PRINT},
     {"JOIN", TokenType::JOIN},
@@ -126,7 +131,8 @@ static std::unordered_map<TokenType, std::string> tokenTypeToString{
     {TokenType::IMPORT, "IMPORT"},
     {TokenType::FROM, "FROM"},
     {TokenType::DECLARE, "DECLARE"},
-    {TokenType::ASSIGN, "ASSIGN"},
+    {TokenType::ASSIGNMENT, "ASSIGNMENT"},
+    {TokenType::EXPRESSION_STATEMENT, "EXPRESSION_STATEMENT"},
     {TokenType::WITH, "WITH"},
     {TokenType::IDENTIFIER, "IDENTIFIER"},
     {TokenType::PARAMETER, "PARAMETER"},
@@ -134,9 +140,10 @@ static std::unordered_map<TokenType, std::string> tokenTypeToString{
     {TokenType::CALL, "CALL"},
     {TokenType::ARGUMENT, "ARGUMENT"},
     {TokenType::BLOCK, "BLOCK"},
+    {TokenType::SCOPE, "SCOPE"},
 
     {TokenType::PRINT, "PRINT"},
     {TokenType::JOIN, "JOIN"},
 
     {TokenType::ENDL, "\n"},
-    {TokenType::END_OF_FILE, "EOF"} };
+    {TokenType::END_OF_FILE, "EOF"}};

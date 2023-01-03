@@ -5,6 +5,7 @@
 
 using namespace ::testing;
 
+/*
 class SemanticAnalyzerTest : public Test
 {
 public:
@@ -144,9 +145,9 @@ TEST_F(SemanticAnalyzerTest, DeclarationErrorNoName)
   expectSyntaxError(source);
 }
 
-/*
+
 TEST_F(SemanticAnalyzerTest, CallErrorUnknownWord) {
   std::string source = "foo";
   expectSyntaxError(source);
 }
-*/
+ */

@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <vector>
+#include <iostream>
 #include "tokenType.h"
 
 struct Token;
@@ -82,6 +83,7 @@ namespace token
   inline std::string verboseTokens(Tokens &tokens)
   {
     std::string verbal = "";
+
     for (auto token : tokens)
     {
       if (token->type == TokenType::ENDL && verbal.size() > 0)
@@ -90,12 +92,29 @@ namespace token
       }
 
       verbal += token->verboseToken();
+
       if (token->type != TokenType::END_OF_FILE)
       {
         verbal += " ";
       }
     }
-    verbal.pop_back();
+
+    if (verbal.size() > 0)
+    {
+      verbal.pop_back();
+    }
+
+    return verbal;
+  }
+
+  inline std::string verboseTokensWithoutSpaces(Tokens &tokens)
+  {
+    std::string verbal = "";
+
+    for (auto token : tokens)
+    {
+      verbal += token->verboseToken();
+    }
     return verbal;
   }
 
@@ -246,9 +265,25 @@ struct PreToken : public Token
     std::string result;
     for (auto token : tokens)
     {
+      result += token->verboseToken();
+    }
+
+    return result;
+  }
+
+  std::string verboseWithSpaces()
+  {
+    std::string result;
+    for (auto token : tokens)
+    {
       result += token->verboseToken() + " ";
     }
-    result.pop_back();
+
+    if (result.size() > 0)
+    {
+      result.pop_back();
+    }
+
     return result;
   }
 
@@ -263,20 +298,77 @@ struct PreToken : public Token
 struct PreIdentifier : public PreToken
 {
   PreIdentifier() : PreToken(TokenType::IDENTIFIER) {}
+
+  std::string verboseToken()
+  {
+    return verboseWithSpaces();
+  }
 };
 
 struct PreParameter : public PreToken
 {
   PreParameter() : PreToken(TokenType::PARAMETER) {}
+
+  std::string verboseToken()
+  {
+    return "(" + verboseWithSpaces() + ")";
+  }
 };
 
 struct PreDeclare : public PreToken
 {
-  PreDeclare() : PreToken(TokenType::DECLARE) {}
+  PreDeclare() : PreToken(TokenType::DECLARE), depth(0) {}
+
+  u_int depth;
 
   std::string verboseToken()
   {
-    return "# " + token::verboseTokens(tokens);
+    return "# " + verbose() + "\n";
+  }
+};
+
+struct PreAssignment : public PreToken
+{
+  PreAssignment() : PreToken(TokenType::ASSIGNMENT) {}
+
+  std::string verboseToken() override
+  {
+    if (tokens.size() != 2)
+    {
+      return "";
+    }
+
+    return tokens[0]->verboseToken() + " = " + tokens[1]->verboseToken() + "\n";
+  }
+};
+
+struct PreImport : public PreToken
+{
+  PreImport() : PreToken(TokenType::IMPORT) {}
+
+  std::string verboseToken() override
+  {
+    return "[" + verbose() + "]";
+  }
+};
+
+struct PreExpressionStatement : public PreToken
+{
+  PreExpressionStatement() : PreToken(TokenType::EXPRESSION_STATEMENT) {}
+
+  std::string verboseToken() override
+  {
+    return verboseWithSpaces() + "\n";
+  }
+};
+
+struct PreExpression : public PreToken
+{
+  PreExpression() : PreToken(TokenType::EXPRESSION) {}
+
+  std::string verboseToken() override
+  {
+    return verboseWithSpaces();
   }
 };
 
@@ -286,11 +378,81 @@ struct PreBlock : public PreToken
 
   std::string verboseToken() override
   {
-    std::string result = "(" + std::to_string(depth) + ") {}\n";
-    return result;
+    return "[" + std::to_string(depth) + "]\n";
   }
 
   u_int depth;
+};
+
+struct PreScope;
+typedef std::shared_ptr<PreScope> pPreScope;
+typedef std::vector<pPreScope> PreScopes;
+typedef std::shared_ptr<PreIdentifier> pPreIdentifier;
+typedef std::vector<pPreIdentifier> PreIdentifiers;
+
+struct PreScope : public PreToken
+{
+  PreScope(pPreScope b = nullptr) : PreToken(TokenType::SCOPE), broader(b) {}
+
+  u_int depth;
+  pPreScope broader;
+  PreScopes narrower;
+  PreIdentifiers identifiers;
+
+  std::string intend()
+  {
+    std::string res = "";
+    for (u_int i = 0; i < depth; ++i)
+    {
+      res += "  ";
+    }
+    return res;
+  }
+
+  std::string verboseToken() override
+  {
+    std::string r;
+    for (auto t : tokens)
+    {
+      r += intend() + t->verboseToken();
+    }
+    return r;
+  }
+
+  void addIdentifier(pToken t)
+  {
+    if (t->isTypeOf(TokenType::IDENTIFIER))
+    {
+      auto id = std::dynamic_pointer_cast<PreIdentifier>(t);
+      identifiers.push_back(id);
+      return;
+    }
+
+    std::cerr << "PreScope: addIdentifier: wrong type of token\n";
+    std::exit(123);
+  }
+
+  std::string verboseIdentifiers()
+  {
+    std::string res;
+    for (auto identifier : identifiers)
+    {
+      res += intend() + identifier->verboseToken() + "\n";
+    }
+
+    return res;
+  }
+
+  std::string verboseIdentifiersRecursively()
+  {
+    auto res = verboseIdentifiers();
+    for (auto s : narrower)
+    {
+      res += s->verboseIdentifiersRecursively();
+    }
+
+    return res;
+  }
 };
 
 // deprecated
@@ -305,12 +467,6 @@ class From : public Token
 {
 public:
   From() : Token(TokenType::FROM) {}
-};
-
-class Assign : public Token
-{
-public:
-  Assign() : Token(TokenType::ASSIGN) {}
 };
 
 class With : public Token
