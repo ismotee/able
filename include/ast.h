@@ -8,6 +8,9 @@ struct AstNode;
 typedef std::shared_ptr<AstNode> pAstNode;
 typedef std::vector<pAstNode> SemanticTokens;
 
+struct AstProgram;
+typedef std::shared_ptr<AstProgram> pAstProgram;
+
 struct AstNode {
   AstNode(std::shared_ptr<Token> t = nullptr): token(t) {}
   virtual std::string tokenLiteral() {
