@@ -1,51 +1,54 @@
 #pragma once
 #include <unordered_map>
 
-enum class TokenType
-{
-  UNDEFINED,
+enum class TokenType {
+    UNDEFINED,
 
-  MINUS,
-  PLUS,
-  ASTERISK,
-  SLASH,
-  EQUALS,
+    MINUS,
+    PLUS,
+    ASTERISK,
+    SLASH,
+    EQUALS,
 
-  WORD,
-  NUMBER,
+    WORD,
+    NUMBER,
 
-  HASH,
-  LBRACE,
-  RBRACE,
-  LBRACKET,
-  RBRACKET,
-  COLON,
-  BANG,
+    HASH,
+    LBRACE,
+    RBRACE,
+    LBRACKET,
+    RBRACKET,
+    COLON,
+    BANG,
+    UNDERSCORE,
 
-  EQUALS_COMPARE,
-  NOT_EQUALS,
-  GT,
-  LT,
-  GT_OR_EQUALS,
-  LT_OR_EQUALS,
+    EQUALS_COMPARE,
+    NOT_EQUALS,
+    GT,
+    LT,
+    GT_OR_EQUALS,
+    LT_OR_EQUALS,
 
-  IMPORT,
-  FROM,
-  DECLARE,
-  ASSIGN,
-  WITH,
-  IDENTIFIER,
-  PARAMETER,
-  EXPRESSION,
-  CALL,
-  ARGUMENT,
+    IMPORT,
+    FROM,
+    DECLARE,
+    ASSIGN,
+    WITH,
+    IDENTIFIER,
+    PARAMETER,
+    EXPRESSION,
+    EXPRESSION_STATEMENT,
+    CALL,
+    ARGUMENT,
 
-  PRINT,
-  JOIN,
+    PRINT,
+    JOIN,
 
-  ENDL,
-  END_OF_FILE,
+    ENDL,
+    END_OF_FILE,
 };
+
+typedef std::vector<TokenType> TokenTypes;
 
 static std::unordered_map<std::string, TokenType> stringToTokenType{
     {"undefined", TokenType::UNDEFINED},
@@ -66,6 +69,7 @@ static std::unordered_map<std::string, TokenType> stringToTokenType{
     {"]", TokenType::RBRACKET},
     {":", TokenType::COLON},
     {"!", TokenType::BANG},
+    {"_", TokenType::UNDERSCORE},
 
     {"==", TokenType::EQUALS_COMPARE},
     {"!=", TokenType::NOT_EQUALS},
@@ -82,6 +86,7 @@ static std::unordered_map<std::string, TokenType> stringToTokenType{
     {"IDENTIFIER", TokenType::IDENTIFIER},
     {"PARAMETER", TokenType::PARAMETER},
     {"EXPRESSION", TokenType::EXPRESSION},
+    {"EXPRESSION_STATEMENT", TokenType::EXPRESSION_STATEMENT},
     {"CALL", TokenType::CALL},
     {"ARGUMENT", TokenType::ARGUMENT},
 
@@ -111,6 +116,7 @@ static std::unordered_map<TokenType, std::string> tokenTypeToString{
     {TokenType::RBRACKET, "]"},
     {TokenType::COLON, ":"},
     {TokenType::BANG, "!"},
+    {TokenType::UNDERSCORE, "_"},
 
     {TokenType::EQUALS_COMPARE, "=="},
     {TokenType::NOT_EQUALS, "!="},
@@ -127,11 +133,12 @@ static std::unordered_map<TokenType, std::string> tokenTypeToString{
     {TokenType::IDENTIFIER, "IDENTIFIER"},
     {TokenType::PARAMETER, "PARAMETER"},
     {TokenType::EXPRESSION, "EXPRESSION"},
+    {TokenType::EXPRESSION_STATEMENT, "EXPRESSION_STATEMENT"},
     {TokenType::CALL, "CALL"},
     {TokenType::ARGUMENT, "ARGUMENT"},
 
     {TokenType::PRINT, "PRINT"},
     {TokenType::JOIN, "JOIN"},
 
-    {TokenType::ENDL, "ENDL"},
-    {TokenType::END_OF_FILE, "EOF"}};
+    {TokenType::ENDL, "\n"},
+    {TokenType::END_OF_FILE, "EOF"} };

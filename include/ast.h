@@ -6,258 +6,245 @@
 
 struct AstNode;
 typedef std::shared_ptr<AstNode> pAstNode;
-typedef std::vector<pAstNode> SemanticTokens; 
+typedef std::vector<pAstNode> SemanticTokens;
 
-struct AstNode
-{
-  AstNode(std::shared_ptr<Token> t = nullptr) : token(t) {}
-  virtual std::string tokenLiteral()
-  {
+struct AstNode {
+  AstNode(std::shared_ptr<Token> t = nullptr): token(t) {}
+  virtual std::string tokenLiteral() {
     return token->literal;
   }
   virtual std::string toString() = 0;
+  virtual std::string typeToString(u_int in) = 0;
+
+  std::string intend(u_int in) {
+    std::string res = "";
+    for (u_int i = 0; i < in; ++i) {
+      res += "  ";
+    }
+    return res;
+  }
 
   std::shared_ptr<Token> token;
 };
 
-struct AstStatement : AstNode
-{
-  AstStatement(std::shared_ptr<Token> t = nullptr) : AstNode(t) {}
+struct AstStatement: AstNode {
+  AstStatement(std::shared_ptr<Token> t = nullptr): AstNode(t) {}
 };
 
-struct AstExpression : AstNode
-{
-  AstExpression(std::shared_ptr<Token> t = nullptr) : AstNode(t) {}
+struct AstExpression: AstNode {
+  AstExpression(std::shared_ptr<Token> t = nullptr): AstNode(t) {}
 };
 
 typedef std::vector<std::shared_ptr<AstStatement>> Statements;
 
-struct AstProgram : AstNode
-{
+struct AstProgram: AstNode {
   Statements statements;
 
-  std::string tokenLiteral() override
-  {
-    if (statements.size() > 0)
-    {
+  void addStatement(pAstStatement s) {
+    statements.push_back(s);
+  }
+
+  std::string tokenLiteral() override {
+    if (statements.size() > 0) {
       return statements[0]->tokenLiteral();
-    }
-    else
-    {
+    } else {
       return "";
     }
   }
 
-  std::string toString()
-  {
+  std::string toString() {
     std::string out;
-    for (auto stmt : statements)
-    {
+    for (auto stmt : statements) {
       out += stmt->toString();
     }
     return out;
   }
+
+  std::string typeToString(u_int in) {
+    std::string out = intend(in) + "PROGRAM\n";
+    for (auto stmt : statements) {
+      out += stmt->typeToString(in + 1);
+    }
+    return out;
+  }
+
 };
 
-struct AstNumber : AstExpression
-{
+struct AstNumber: AstExpression {
   AstNumber() {}
-  AstNumber(pToken t, double v) : AstExpression(t), value(v) {}
+  AstNumber(pToken t, double v): AstExpression(t), value(v) {}
 
   double value;
 
-  std::string toString()
-  {
+  std::string toString() {
     std::string nbr = std::to_string(value);
-    for (auto it = nbr.end() - 1; (*it) == '0' || (*it) == '.'; --it)
-    {
-      nbr.erase(it);
+    if (nbr.size() != 1) {
+      for (auto it = nbr.end() - 1; (*it) == '0' || (*it) == '.'; --it) {
+        nbr.erase(it);
+      }
     }
     return nbr;
   }
+
+  std::string typeToString(u_int in) {
+    return "NUMBER";
+  }
+
 };
 
-struct AstExpressionStatement : AstStatement
-{
+struct AstExpressionStatement: AstStatement {
   AstExpressionStatement() {}
-  AstExpressionStatement(std::shared_ptr<Token> t, std::shared_ptr<AstExpression> e) : AstStatement(t), expression(e) {}
+  AstExpressionStatement(std::shared_ptr<Token> t, std::shared_ptr<AstExpression> e): AstStatement(t), expression(e) {}
 
   std::shared_ptr<AstExpression> expression;
 
-  std::string toString()
-  {
-    if (expression != nullptr)
-    {
+  std::string toString() {
+    if (expression != nullptr) {
       return expression->toString() + "\n";
     }
     return "";
   }
-};
 
-struct AstPrefixExpression : AstExpression
-{
-  AstPrefixExpression() : AstExpression() {}
-  AstPrefixExpression(std::shared_ptr<Token> t, std::shared_ptr<AstExpression> e) : AstExpression(t), right(e) {}
-
-  // token is same as operator
-  std::shared_ptr<AstExpression> right;
-
-  std::string toString()
-  {
-    return "(" + token->literal + right->toString() + ")";
+  std::string typeToString(u_int in) {
+    return intend(in) + "EXPRESSION_STATEMENT->" + expression->typeToString(in) + "\n";
   }
 };
 
-struct AstInfixExpression : AstExpression
-{
+struct AstPrefixExpression: AstExpression {
+  AstPrefixExpression(): AstExpression() {}
+  AstPrefixExpression(std::shared_ptr<Token> t, std::shared_ptr<AstExpression> e): AstExpression(t), right(e) {}
+
+  std::shared_ptr<AstExpression> right;
+
+  std::string toString() {
+    return token->literal + right->toString();
+  }
+
+  std::string typeToString(u_int in) {
+    return tokenTypeToString[token->type] + right->typeToString(in);
+  }
+
+};
+
+struct AstCall: public AstExpression {
+  AstCall(): AstExpression(), identifier(nullptr) {}
+  AstCall(pToken t, pPreIdentifier id): AstExpression(t), identifier(id) {}
+
+  pPreIdentifier identifier;
+
+  std::string toString() {
+    return identifier->verboseToken();
+  }
+
+  std::string typeToString(u_int in) {
+    u_int numParams = 0;
+    for (auto t : identifier->tokens) {
+      if (t->isTypeOf(TokenType::PARAMETER)) {
+        ++numParams;
+      }
+    }
+    return "CALL(" + std::to_string(numParams) + ")";
+  }
+};
+
+typedef std::shared_ptr<AstCall> pAstCall;
+
+struct AstInfixExpression: AstExpression {
   AstInfixExpression() {}
   AstInfixExpression(
-      std::shared_ptr<Token> t,
-      std::shared_ptr<AstExpression> l = nullptr,
-      std::shared_ptr<AstExpression> r = nullptr) : AstExpression(t),
-                                                    left(l),
-                                                    right(r) {}
+    std::shared_ptr<Token> t,
+    std::shared_ptr<AstExpression> l = nullptr,
+    std::shared_ptr<AstExpression> r = nullptr): AstExpression(t),
+    left(l),
+    right(r) {}
 
   std::shared_ptr<AstExpression> left;
   std::shared_ptr<AstExpression> right;
 
-  std::string toString()
-  {
+  std::string toString() {
     return "(" + left->toString() + " " + token->literal + " " + right->toString() + ")";
   }
-};
 
-struct AstIdentifier
-{
-  AstIdentifier() {}
-
-  Tokens identifier;
-
-  std::string toString()
-  {
-    std::string res;
-    for (auto part : identifier)
-    {
-      res = res + part->literal + " ";
-    }
-    res.pop_back();
-    return res;
+  std::string typeToString(u_int in) {
+    return left->typeToString(in) +
+      " " + tokenTypeToString[token->type] +
+      " " + right->typeToString(in);
   }
 
-  bool compare(Tokens::iterator it)
-  {
-    for (auto token : identifier)
-    {
-      if ((*it)->isTypeOf({TokenType::ENDL, TokenType::END_OF_FILE}))
-      {
-        return false;
-      }
-      if (token->literal == (*it)->literal && token->type == (*it)->type)
-      {
-        ++it;
-      }
-      else
-      {
-        return false;
-      }
-    }
-    return true;
+};
+
+struct AstIdentifier: public AstExpression {
+  AstIdentifier(pToken t, pPreIdentifier _name): AstExpression(t), name(_name) {}
+
+  // this probably is not necessary since the same token is stored to AstNode::token
+  pPreIdentifier name;
+
+  std::string toString() {
+    return name->verboseToken();
+  }
+
+  std::string typeToString(u_int in) {
+    return "IDENTIFIER";
   }
 };
 
-struct AstParameter : AstExpression, AstIdentifier
-{
+typedef std::shared_ptr<AstIdentifier> pAstIdentifier;
+
+struct AstParameter: public AstExpression {
   AstParameter() {}
-  AstParameter(std::shared_ptr<Token> t) : AstExpression(t) {}
+  AstParameter(std::shared_ptr<Token> t): AstExpression(t) {}
 
-  std::string toString() override { return AstIdentifier::toString(); }
+  std::string toString() { return ""; }
+  std::string typeToString(u_int in) { return "PARAM"; }
 };
 
 typedef std::vector<std::shared_ptr<AstParameter>> Parameters;
 
-struct AstDeclarationStatement : AstStatement, AstIdentifier
-{
+struct AstDeclarationStatement: public AstStatement {
   AstDeclarationStatement() {}
-  AstDeclarationStatement(std::shared_ptr<Token> t) : AstStatement(t) {}
+  AstDeclarationStatement(std::shared_ptr<Token> t, pAstIdentifier id): AstStatement(t), name(id) {}
 
-  Parameters params;
-  Statements block;
+  pAstIdentifier name;
+  pAstProgram scope;
 
-  std::string toString() override
-  {
-    std::string res = token->literal + " ";
-
-    res += AstIdentifier::toString();
-    res += "(";
-
-    for (auto param : params)
-    {
-      res += param->toString();
-      res += ", ";
-    }
-    if (params.size() > 0)
-    {
-      res.pop_back();
-      res.pop_back();
-    }
-
-    res += ") {\n";
-    for (auto stmt : block)
-    {
-      res += stmt->toString();
-    }
-    res += "}\n";
+  std::string toString() {
+    std::string res = "# ";
+    res += name->toString() + "\n";
+    res += scope->toString();
     return res;
+  }
+
+  std::string typeToString(u_int in) {
+    return intend(in) + "DECLARATION " + name->typeToString(in) + "\n"
+      + scope->typeToString(in);
   }
 };
 
-struct AstAssignment : AstStatement, AstIdentifier
-{
+struct AstAssignment: AstStatement {
   AstAssignment() {}
-  AstAssignment(std::shared_ptr<Token> t) : AstStatement(t) {}
+  AstAssignment(std::shared_ptr<Token> t): AstStatement(t) {}
 
   Parameters params;
   std::shared_ptr<AstExpression> value;
 
-  std::string toString() override
-  {
-    std::string res = AstIdentifier::toString();
+  std::string toString() override {
+    std::string res = "";
     res += "(";
 
-    for (auto param : params)
-    {
+    for (auto param : params) {
       res += param->toString();
       res += ", ";
     }
 
-    if (params.size() > 0)
-    {
+    if (params.size() > 0) {
       res.pop_back();
       res.pop_back();
     }
 
     return res + ") = " + value->toString() + "\n";
   }
-};
 
-struct AstCallExpression : AstExpression, AstIdentifier
-{
-  AstCallExpression() {}
-  AstCallExpression(std::shared_ptr<Token> t) : AstExpression(t) {}
-
-  std::vector<std::shared_ptr<AstExpression>> arguments;
-
-  std::string toString() override
-  {
-    std::string res = "{";
-    res += AstIdentifier::toString();
-
-    for (auto arg : arguments)
-    {
-      res += arg->toString();
-    }
-
-    res += "}";
-    return res;
+  std::string typeToString(u_int in) {
+    return "";
   }
 };

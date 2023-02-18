@@ -7,35 +7,27 @@ class Token;
 typedef std::vector<std::shared_ptr<Token>> Tokens;
 typedef std::shared_ptr<Token> pToken;
 
-class Token
-{
-public:
-  Token() {}
+struct Token {
+  Token(TokenType t = TokenType::UNDEFINED): type(t), literal(tokenTypeToString[t]) {}
   Token(
-      std::string l,
-      TokenType t = TokenType::UNDEFINED,
-      std::shared_ptr<Token> po = nullptr) : literal(l), type(t), partOf(po) {}
+    std::string l,
+    TokenType t = TokenType::UNDEFINED): type(t), literal(l) {}
 
-  bool isPartOf(std::shared_ptr<Token> t)
-  {
-    return t == partOf;
-  }
-
-  std::string verboseToken()
-  {
+  virtual std::string verboseToken() {
     return literal;
   }
 
-  bool isTypeOf(std::vector<TokenType> types)
-  {
-    for (auto _type : types)
-    {
-      if (type == _type)
-      {
+  bool isTypeOf(std::vector<TokenType> types) {
+    for (auto _type : types) {
+      if (type == _type) {
         return true;
       }
     }
     return false;
+  }
+
+  std::string typeToString() {
+    return tokenTypeToString[type];
   }
 
   bool isTypeOf(TokenType comp) {
@@ -58,248 +50,372 @@ public:
   std::shared_ptr<Token> relatedTo;
 };
 
-static bool operator==(const pToken& lht, const pToken& rht) {
+inline bool operator==(const pToken& lht, const pToken& rht) {
   return *lht == *rht;
 }
 
-static bool operator!=(const pToken& lht, const pToken& rht) {
+inline bool operator!=(const pToken& lht, const pToken& rht) {
   return *lht != *rht;
 }
 
-class Hash : public Token
-{
-public:
-  Hash() : Token("#", TokenType::HASH) {}
+// some helpers
+
+namespace token {
+  const std::vector<TokenType> END = { TokenType::ENDL, TokenType::END_OF_FILE };
+  inline void linkTokens(Tokens& tokens) {
+    /*
+    if (tokens.size() < 2) {
+      return;
+    }
+
+    for (u_int i = 1; i < tokens.size(); ++i) {
+      tokens[i - 1]->next = tokens[i];
+      tokens[i]->prev = tokens[i - 1];
+    }
+    */
+  }
+
+  inline std::string verboseTokens(Tokens& tokens) {
+    std::string verbal = "";
+
+    for (auto token : tokens) {
+      if (token->type == TokenType::ENDL && verbal.size() > 0) {
+        verbal.pop_back();
+      }
+
+      verbal += token->verboseToken();
+
+      if (token->type != TokenType::END_OF_FILE) {
+        verbal += " ";
+      }
+    }
+
+    if (verbal.size() > 0) {
+      verbal.pop_back();
+    }
+
+    return verbal;
+  }
+
+  inline std::string verboseTokensWithoutSpaces(Tokens& tokens) {
+    std::string verbal = "";
+
+    for (auto token : tokens) {
+      verbal += token->verboseToken();
+    }
+    return verbal;
+  }
+
+  inline std::string verboseTokensType(Tokens& tokens) {
+    std::string verbal = "";
+
+    for (auto token : tokens) {
+      if (token->type == TokenType::ENDL && verbal.size() > 0) {
+        verbal.pop_back();
+      }
+
+      verbal += token->typeToString();
+
+      if (token->type != TokenType::END_OF_FILE) {
+        verbal += " ";
+      }
+    }
+
+    if (verbal.size() > 0) {
+      verbal.pop_back();
+    }
+
+    return verbal;
+  }
 };
 
-class Minus : public Token
-{
+class Hash: public Token {
 public:
-  Minus() : Token("-", TokenType::MINUS) {}
+  Hash(): Token(TokenType::HASH) {}
 };
 
-class Plus : public Token
-{
+class Minus: public Token {
 public:
-  Plus() : Token("+", TokenType::PLUS) {}
+  Minus(): Token(TokenType::MINUS) {}
 };
 
-class Asterisk : public Token
-{
+class Plus: public Token {
 public:
-  Asterisk() : Token("*", TokenType::ASTERISK) {}
+  Plus(): Token(TokenType::PLUS) {}
 };
 
-class Slash : public Token
-{
+class Asterisk: public Token {
 public:
-  Slash() : Token("/", TokenType::SLASH) {}
+  Asterisk(): Token(TokenType::ASTERISK) {}
 };
 
-class Equals : public Token
-{
+class Slash: public Token {
 public:
-  Equals() : Token("=", TokenType::EQUALS) {}
+  Slash(): Token(TokenType::SLASH) {}
 };
 
-class Word : public Token
-{
+class Equals: public Token {
+public:
+  Equals(): Token(TokenType::EQUALS) {}
+};
+
+class Word: public Token {
 public:
   Word() {}
-  Word(std::string l, std::shared_ptr<Token> _partOf = nullptr) : Token(l, TokenType::WORD, _partOf) {}
+  Word(std::string l): Token(l, TokenType::WORD) {}
 };
 
-class Number : public Token
-{
+class Number: public Token {
 public:
   Number() {}
-  Number(std::string l) : Token(l, TokenType::NUMBER) {}
+  Number(std::string l): Token(l, TokenType::NUMBER) {}
 };
 
-class LBrace : public Token
-{
+class LBrace: public Token {
 public:
-  LBrace() : Token("(", TokenType::LBRACE) {}
+  LBrace(): Token(TokenType::LBRACE) {}
 };
 
-class RBrace : public Token
-{
+class RBrace: public Token {
 public:
-  RBrace() : Token(")", TokenType::RBRACE) {}
+  RBrace(): Token(TokenType::RBRACE) {}
 };
 
-class LBracket : public Token
-{
+class LBracket: public Token {
 public:
-  LBracket() : Token("[", TokenType::LBRACKET) {}
+  LBracket(): Token(TokenType::LBRACKET) {}
 };
 
-class RBracket : public Token
-{
+class RBracket: public Token {
 public:
-  RBracket() : Token("]", TokenType::RBRACKET) {}
+  RBracket(): Token(TokenType::RBRACKET) {}
 };
 
-class Colon : public Token
-{
+class Colon: public Token {
 public:
-  Colon() : Token(":", TokenType::COLON) {}
+  Colon(): Token(TokenType::COLON) {}
 };
 
-class Bang : public Token
-{
+class Bang: public Token {
 public:
-  Bang() : Token("!", TokenType::BANG) {}
+  Bang(): Token(TokenType::BANG) {}
 };
 
-class EqualsCompare : public Token
-{
+class Underscore: public Token {
 public:
-  EqualsCompare() : Token("==", TokenType::EQUALS_COMPARE) {}
+  Underscore(): Token(TokenType::UNDERSCORE) {}
 };
 
-class NotEquals : public Token
-{
+class EqualsCompare: public Token {
 public:
-  NotEquals() : Token("!=", TokenType::NOT_EQUALS) {}
+  EqualsCompare(): Token(TokenType::EQUALS_COMPARE) {}
 };
 
-class Gt : public Token
-{
+class NotEquals: public Token {
 public:
-  Gt() : Token(">", TokenType::GT) {}
+  NotEquals(): Token(TokenType::NOT_EQUALS) {}
 };
 
-class Lt : public Token
-{
+class Gt: public Token {
 public:
-  Lt() : Token("<", TokenType::LT) {}
+  Gt(): Token(TokenType::GT) {}
 };
 
-class GtOrEquals : public Token
-{
+class Lt: public Token {
 public:
-  GtOrEquals() : Token(">=", TokenType::GT_OR_EQUALS) {}
+  Lt(): Token(TokenType::LT) {}
 };
 
-class LtOrEquals : public Token
-{
-public:
-  LtOrEquals() : Token("<=", TokenType::LT_OR_EQUALS) {}
+struct GtOrEquals: public Token {
+  GtOrEquals(): Token(TokenType::GT_OR_EQUALS) {}
 };
 
-class EndL : public Token
-{
-public:
-  EndL() : Token("\n", TokenType::ENDL) {}
+struct LtOrEquals: public Token {
+  LtOrEquals(): Token(TokenType::LT_OR_EQUALS) {}
 };
 
-class EndOfFile : public Token
-{
-public:
-  EndOfFile() : Token("", TokenType::END_OF_FILE) {}
+struct EndL: public Token {
+  EndL(): Token(TokenType::ENDL) {}
+};
+
+struct EndOfFile: public Token {
+  EndOfFile(): Token("", TokenType::END_OF_FILE) {}
 };
 
 // pre-semantic tokens
 
-class Import : public Token
-{
-public:
-  Import() : Token("IMPORT", TokenType::IMPORT) {}
+struct PreToken;
+typedef std::shared_ptr<PreToken> pPreToken;
+typedef std::vector<pPreToken> PreTokens;
+
+struct PreToken: public Token {
+  PreToken(TokenType t = TokenType::PRE_TOKEN): Token(t) {}
+
+  std::string verbose() {
+    std::string result;
+    for (auto token : tokens) {
+      result += token->verboseToken();
+    }
+
+    return result;
+  }
+
+  std::string verboseWithSpaces() {
+    std::string result;
+    for (auto token : tokens) {
+      result += token->verboseToken() + " ";
+    }
+
+    if (result.size() > 0) {
+      result.pop_back();
+    }
+
+    return result;
+  }
+
+  virtual std::string verboseToken() override {
+    return verbose();
+  }
+
+  Tokens tokens = {};
 };
 
-class From : public Token
-{
-public:
-  From() : Token("FROM", TokenType::FROM) {}
+struct PreCall: public PreToken {
+  PreCall(): PreToken(TokenType::CALL) {}
+
+  std::string verboseToken() {
+    return "CALL";
+  }
 };
 
-class Declare : public Token
-{
-public:
-  Declare(std::string literal = "DECLARE") : Token(literal, TokenType::DECLARE) {}
+struct PreIdentifier: public PreToken {
+  PreIdentifier(): PreToken(TokenType::IDENTIFIER) {}
+
+  std::string verboseToken() {
+    return verboseWithSpaces();
+  }
 };
 
-class Assign : public Token
-{
-public:
-  Assign() : Token("ASSIGN", TokenType::ASSIGN) {}
+struct PreParameter: public PreToken {
+  PreParameter(): PreToken(TokenType::PARAMETER) {}
+
+  std::string verboseToken() {
+    return "_" + verboseWithSpaces() + "_";
+  }
 };
 
-class With : public Token
-{
-public:
-  With() : Token("WITH", TokenType::WITH) {}
+struct PreDeclare: public PreToken {
+  PreDeclare(): PreToken(TokenType::DECLARE), depth(0) {}
+
+  u_int depth;
+
+  std::string verboseToken() {
+    return "# " + verbose() + "\n";
+  }
 };
 
-class Parameter : public Token
-{
-public:
-  Parameter(std::shared_ptr<Token> _partOf = nullptr) : Token("PARAMETER", TokenType::PARAMETER, _partOf) {}
+struct PreAssignment: public PreToken {
+  PreAssignment(): PreToken(TokenType::ASSIGNMENT) {}
+
+  std::string verboseToken() override {
+    if (tokens.size() != 2) {
+      return "";
+    }
+
+    return tokens[0]->verboseToken() + " = " + tokens[1]->verboseToken() + "\n";
+  }
 };
 
-class Expression : public Token
-{
-public:
-  Expression(std::shared_ptr<Token> _partOf = nullptr) : Token("EXPRESSION", TokenType::EXPRESSION, _partOf) {}
+struct PreImport: public PreToken {
+  PreImport(): PreToken(TokenType::IMPORT) {}
+
+  std::string verboseToken() override {
+    return "[" + verbose() + "]";
+  }
 };
 
-class PrefixExpression : public Expression
-{
-public:
-  PrefixExpression(std::shared_ptr<Token> _partOf = nullptr) : Expression(_partOf) {}
+struct PreExpressionStatement: public PreToken {
+  PreExpressionStatement(): PreToken(TokenType::EXPRESSION_STATEMENT) {}
 
-  Token oper;
-  Expression right;
+  std::string verboseToken() override {
+    return verboseWithSpaces() + "\n";
+  }
 };
 
-class Identifier : public Token
-{
-public:
-  Identifier() : Token("IDENTIFIER", TokenType::IDENTIFIER) {}
+struct PreExpression: public PreToken {
+  PreExpression(): PreToken(TokenType::EXPRESSION) {}
+
+  std::string verboseToken() override {
+    return verboseWithSpaces();
+  }
 };
 
-class Call : public Token
-{
-public:
-  Call() : Token("CALL", TokenType::CALL) {}
+struct PreBlock: public PreToken {
+  PreBlock(): PreToken(TokenType::BLOCK), depth(0) {}
+
+  std::string verboseToken() override {
+    return "[" + std::to_string(depth) + "]\n";
+  }
+
+  u_int depth;
 };
 
-class Argument : public Token
-{
-public:
-  Argument() : Token("ARGUMENT", TokenType::ARGUMENT) {}
-};
+struct PreScope;
+typedef std::shared_ptr<PreScope> pPreScope;
+typedef std::vector<pPreScope> PreScopes;
+typedef std::shared_ptr<PreIdentifier> pPreIdentifier;
+typedef std::vector<pPreIdentifier> PreIdentifiers;
 
-// Keyphrases
+struct PreScope: public PreToken {
+  PreScope(pPreScope b = nullptr): PreToken(TokenType::SCOPE), broader(b) {}
 
-class Print : public Token
-{
-public:
-  Print() : Token("PRINT", TokenType::PRINT) {}
-};
+  u_int depth;
+  pPreScope broader;
+  PreScopes narrower;
+  PreIdentifiers identifiers;
 
-class Join : public Token
-{
-public:
-  Join() : Token("JOIN", TokenType::JOIN) {}
-};
+  std::string intend() {
+    std::string res = "";
+    for (u_int i = 0; i < depth; ++i) {
+      res += "  ";
+    }
+    return res;
+  }
 
-// some helpers
+  std::string verboseToken() override {
+    std::string r;
+    for (auto t : tokens) {
+      r += intend() + t->verboseToken();
+    }
+    return r;
+  }
 
-namespace token
-{
-  static void linkTokens(Tokens &tokens)
-  {
-    if (tokens.size() < 2)
-    {
+  void addIdentifier(pToken t) {
+    if (t->isTypeOf(TokenType::IDENTIFIER)) {
+      auto id = std::dynamic_pointer_cast<PreIdentifier>(t);
+      identifiers.push_back(id);
       return;
     }
 
-    for (u_int i = 1; i < tokens.size(); ++i)
-    {
-      tokens[i - 1]->next = tokens[i];
-      tokens[i]->prev = tokens[i - 1];
+    std::cerr << "PreScope: addIdentifier: wrong type of token\n";
+    std::exit(123);
+  }
+
+  std::string verboseIdentifiers() {
+    std::string res;
+    for (auto identifier : identifiers) {
+      res += intend() + identifier->verboseToken() + "\n";
     }
+
+    return res;
+  }
+
+  std::string verboseIdentifiersRecursively() {
+    auto res = verboseIdentifiers();
+    for (auto s : narrower) {
+      res += s->verboseIdentifiersRecursively();
+    }
+
+    return res;
   }
 };

@@ -5,30 +5,25 @@
 
 using namespace ::testing;
 
-struct TokenTester
-{
+struct TokenTester {
   TokenTester() {}
-  TokenTester(TokenType t, std::string l) : type(t), literal(l) {}
+  TokenTester(TokenType t, std::string l): type(t), literal(l) {}
   TokenType type;
   std::string literal;
 };
 
 typedef std::vector<TokenTester> TokenTesters;
 
-class LexerTest : public Test
-{
+class LexerTest: public Test {
 public:
   Lexer l;
-  void generateTokensFromSource(std::string src)
-  {
+  void generateTokensFromSource(std::string src) {
     l = Lexer(src);
     l.generateTokens();
   }
-  void testTokens(TokenTesters expectedTokens)
-  {
+  void testTokens(TokenTesters expectedTokens) {
     EXPECT_EQ(l.tokens.size(), expectedTokens.size());
-    for (u_int i = 0; i < l.tokens.size(); ++i)
-    {
+    for (u_int i = 0; i < l.tokens.size(); ++i) {
       TokenTester tester = expectedTokens[i];
       auto token = l.tokens[i];
       // test type
@@ -44,32 +39,29 @@ public:
   }
 };
 
-TEST_F(LexerTest, AlwaysEOF)
-{
+TEST_F(LexerTest, AlwaysEOF) {
   std::string source = "";
   generateTokensFromSource(source);
 
   TokenTesters expectedTokens = {
-      {TokenType::END_OF_FILE, ""}};
+      {TokenType::END_OF_FILE, ""} };
 
   testTokens(expectedTokens);
 }
 
-TEST_F(LexerTest, SingleWordDeclaration)
-{
+TEST_F(LexerTest, SingleWordDeclaration) {
   std::string source = "# moi";
   generateTokensFromSource(source);
 
   TokenTesters expectedTokens = {
       {TokenType::HASH, "#"},
       {TokenType::WORD, "moi"},
-      {TokenType::END_OF_FILE, ""}};
+      {TokenType::END_OF_FILE, ""} };
 
   testTokens(expectedTokens);
 }
 
-TEST_F(LexerTest, MultipleWordDeclaration)
-{
+TEST_F(LexerTest, MultipleWordDeclaration) {
   std::string source = "# moi hei";
   generateTokensFromSource(source);
 
@@ -77,13 +69,12 @@ TEST_F(LexerTest, MultipleWordDeclaration)
       {TokenType::HASH, "#"},
       {TokenType::WORD, "moi"},
       {TokenType::WORD, "hei"},
-      {TokenType::END_OF_FILE, ""}};
+      {TokenType::END_OF_FILE, ""} };
 
   testTokens(expectedTokens);
 }
 
-TEST_F(LexerTest, MultipleDeclarationMarks)
-{
+TEST_F(LexerTest, MultipleDeclarationMarks) {
   std::string source = "## moi";
   generateTokensFromSource(source);
 
@@ -91,37 +82,55 @@ TEST_F(LexerTest, MultipleDeclarationMarks)
       {TokenType::HASH, "#"},
       {TokenType::HASH, "#"},
       {TokenType::WORD, "moi"},
-      {TokenType::END_OF_FILE, ""}};
+      {TokenType::END_OF_FILE, ""} };
 
   testTokens(expectedTokens);
 }
 
-TEST_F(LexerTest, ArgumentsInDeclaration)
-{
-  std::string source = "# from (foo) to (bar and baz)";
+TEST_F(LexerTest, ArgumentsInDeclaration) {
+  std::string source = "# from _foo_ to _bar and baz_";
   generateTokensFromSource(source);
 
   TokenTesters expectedTokens = {
       {TokenType::HASH, "#"},
       {TokenType::WORD, "from"},
-      {TokenType::LBRACE, "("},
+      {TokenType::UNDERSCORE, "_"},
       {TokenType::WORD, "foo"},
-      {TokenType::RBRACE, ")"},
+      {TokenType::UNDERSCORE, "_"},
       {TokenType::WORD, "to"},
-      {TokenType::LBRACE, "("},
+      {TokenType::UNDERSCORE, "_"},
       {TokenType::WORD, "bar"},
       {TokenType::WORD, "and"},
       {TokenType::WORD, "baz"},
-      {TokenType::RBRACE, ")"},
-      {TokenType::END_OF_FILE, ""}};
+      {TokenType::UNDERSCORE, "_"},
+      {TokenType::END_OF_FILE, ""} };
 
   testTokens(expectedTokens);
 }
 
-TEST_F(LexerTest, MultipleLines)
-{
+TEST_F(LexerTest, Calls) {
+  std::string source = "from _1_ to _3 + foo_";
+  generateTokensFromSource(source);
+
+  TokenTesters expectedTokens = {
+      {TokenType::WORD, "from"},
+      {TokenType::UNDERSCORE, "_"},
+      {TokenType::NUMBER, "1"},
+      {TokenType::UNDERSCORE, "_"},
+      {TokenType::WORD, "to"},
+      {TokenType::UNDERSCORE, "_"},
+      {TokenType::NUMBER, "3"},
+      {TokenType::PLUS, "+"},
+      {TokenType::WORD, "foo"},
+      {TokenType::UNDERSCORE, "_"},
+      {TokenType::END_OF_FILE, ""} };
+
+  testTokens(expectedTokens);
+}
+
+TEST_F(LexerTest, MultipleLines) {
   std::string source = "# foo\n"
-                       "bar";
+    "bar";
   generateTokensFromSource(source);
 
   TokenTesters expectedTokens = {
@@ -129,13 +138,12 @@ TEST_F(LexerTest, MultipleLines)
       {TokenType::WORD, "foo"},
       {TokenType::ENDL, "\n"},
       {TokenType::WORD, "bar"},
-      {TokenType::END_OF_FILE, ""}};
+      {TokenType::END_OF_FILE, ""} };
 
   testTokens(expectedTokens);
 }
 
-TEST_F(LexerTest, ColonAssignment)
-{
+TEST_F(LexerTest, ColonAssignment) {
   std::string source = "foo: bar";
   generateTokensFromSource(source);
 
@@ -143,13 +151,12 @@ TEST_F(LexerTest, ColonAssignment)
       {TokenType::WORD, "foo"},
       {TokenType::COLON, ":"},
       {TokenType::WORD, "bar"},
-      {TokenType::END_OF_FILE, ""}};
+      {TokenType::END_OF_FILE, ""} };
 
   testTokens(expectedTokens);
 }
 
-TEST_F(LexerTest, Numbers)
-{
+TEST_F(LexerTest, Numbers) {
   std::string source = "10 1.0 .234";
   generateTokensFromSource(source);
 
@@ -157,13 +164,12 @@ TEST_F(LexerTest, Numbers)
       {TokenType::NUMBER, "10"},
       {TokenType::NUMBER, "1.0"},
       {TokenType::NUMBER, ".234"},
-      {TokenType::END_OF_FILE, ""}};
+      {TokenType::END_OF_FILE, ""} };
 
   testTokens(expectedTokens);
 }
 
-TEST_F(LexerTest, LinkedMethods)
-{
+TEST_F(LexerTest, LinkedMethods) {
   std::string source = "[2 times 5](times.md#x-times-y)";
   generateTokensFromSource(source);
 
@@ -178,13 +184,12 @@ TEST_F(LexerTest, LinkedMethods)
       {TokenType::HASH, "#"},
       {TokenType::WORD, "x-times-y"},
       {TokenType::RBRACE, ")"},
-      {TokenType::END_OF_FILE, ""}};
+      {TokenType::END_OF_FILE, ""} };
 
   testTokens(expectedTokens);
 }
 
-TEST_F(LexerTest, ArithmeticOperators)
-{
+TEST_F(LexerTest, ArithmeticOperators) {
   std::string source = "- + * / =";
   generateTokensFromSource(source);
 
@@ -200,8 +205,7 @@ TEST_F(LexerTest, ArithmeticOperators)
   testTokens(expectedTokens);
 }
 
-TEST_F(LexerTest, Modifiers)
-{
+TEST_F(LexerTest, Modifiers) {
   std::string source = "!";
   generateTokensFromSource(source);
 
@@ -213,8 +217,7 @@ TEST_F(LexerTest, Modifiers)
   testTokens(expectedTokens);
 }
 
-TEST_F(LexerTest, LogicalOperators)
-{
+TEST_F(LexerTest, LogicalOperators) {
   std::string source = "== != > < >= <=";
   generateTokensFromSource(source);
 
@@ -232,11 +235,10 @@ TEST_F(LexerTest, LogicalOperators)
 }
 
 // syntax errors
-TEST_F(LexerTest, TooManyDots)
-{
+TEST_F(LexerTest, TooManyDots) {
   EXPECT_THROW({
     std::string source = "1.0.0";
     generateTokensFromSource(source);
-  },
-               SYNTAX_ERROR);
+    },
+    SYNTAX_ERROR);
 }
